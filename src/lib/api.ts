@@ -21,7 +21,7 @@ export const getApiUrl = (path: string) => {
     
     if (isCapacitor) {
         // For Mobile (Capacitor), we need the absolute domain where the API is hosted
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://tarot-app.railway.app';
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://tarot-production-b2ee.up.railway.app';
         return `${baseUrl}${normalizedPath}`;
     }
     

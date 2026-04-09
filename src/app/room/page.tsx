@@ -64,19 +64,12 @@ function RoomContent() {
         }
     };
 
-    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-
-    const handleLocalCursor = (e: React.PointerEvent) => {
-        setMousePos({ x: e.clientX, y: e.clientY });
-    };
-
     return (
         <div className="flex flex-col h-screen bg-bg text-text overflow-hidden font-inter relative">
 
             {/* ═══ PREMIUM MYSTIC ALTAR ═══ */}
             <main
                 className="flex-1 relative overflow-hidden bg-[#0a0a0f] noise"
-                onPointerMove={handleLocalCursor}
             >
                 {/* ── Dynamic Living Altar Background ── */}
                 <div className="absolute inset-0 pointer-events-none z-0">

@@ -348,7 +348,7 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
             }
         };
         fetchSession();
-    }, [roomId, isConsultant, searchParams]);
+    }, [roomId, isConsultant, searchParams.toString()]);
 
     const handleEndSession = useCallback(async () => {
         if (!isConsultant || !sessionId) {
@@ -1342,7 +1342,7 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
             }, 500);
             return () => clearInterval(int);
         }
-    }, [isConsultant, searchParams, roomId]);
+    }, [isConsultant, searchParams.toString(), roomId]);
 
     const handlePointerDown = useCallback((id: string) => {
         const newZ = maxZIndex + 1;

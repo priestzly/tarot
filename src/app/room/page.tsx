@@ -38,7 +38,7 @@ function RoomContent() {
         remoteTyping, showEmojiPicker, elapsed, selectedCardId, selectedCard,
         linkCopied, isAmbientOn, isFullscreen, auraColor,
         showShareModal, fullShareUrl, showAurasPanel, currentAura,
-        isConnecting, localReady, remoteReady, pingedCardId,
+        isConnecting, localReady, remoteReady, pingedCardId, isAHeld,
         setIsSidebarOpen, setLocalReady,
         setChatInput, setIsChatOpen, setRemoteFullscreen,
         setShowExitModal, setShowShareModal, setShowEmojiPicker, setSelectedCardId, setAiResponse,
@@ -100,6 +100,36 @@ function RoomContent() {
 
                 <FogOverlay />
                 <MysticAuraParticles auraColor={auraColor} />
+
+                {/* ── Mistik Vizyon (Vision Window) ── */}
+                <AnimatePresence>
+                    {isAHeld && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8, y: 20, rotate: -2 }}
+                            animate={{ opacity: 1, scale: 1, y: 0, rotate: 0 }}
+                            exit={{ opacity: 0, scale: 0.8, y: 20, rotate: 2 }}
+                            className="fixed top-24 right-8 z-[100] w-72 aspect-video glass rounded-2xl border-2 border-accent/40 overflow-hidden shadow-[0_0_50px_rgba(139,92,246,0.4)]"
+                        >
+                            <video
+                                ref={remotePeerId ? remoteVideoRef : myVideoRef}
+                                autoPlay
+                                playsInline
+                                muted={!remotePeerId}
+                                className="w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+                            <div className="absolute bottom-3 left-4 flex items-center gap-3">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                                </span>
+                                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/90 drop-shadow-md">Mistik Vizyon</span>
+                            </div>
+                            {/* Mystical scanline effect */}
+                            <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(184,164,232,0.05)_50%,transparent_50%)] bg-[length:100%_4px]" />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 {/* ── Top Center: Sacred Action Menu ── */}
                 {isConsultant && clientProfile?.pkgId !== 'relation' && cards.length > 0 && (

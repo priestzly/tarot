@@ -9,6 +9,8 @@ import { getApiUrl } from "@/lib/api";
 
 // Remove global socket to avoid cross-component pollution
 
+const supabase = createClient();
+
 export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
     // Role & Client Form Data
     const initialRole = searchParams.get('role') === 'client' ? 'client' : 'consultant';
@@ -69,9 +71,9 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
         return () => { if (saveCardsTimeout.current) clearTimeout(saveCardsTimeout.current); };
     }, [cards, sessionId]);
 
-    // Initial Media State: Audio only to save battery and focus on cards
+    // Initial Media State
     const [isMuted, setIsMuted] = useState(true);
-    const [isVideoOff, setIsVideoOff] = useState(true); // Always true now
+    const [isVideoOff, setIsVideoOff] = useState(false);
 
     // Premium UI State
     const [logs, setLogs] = useState<ActivityLog[]>([]);
@@ -93,7 +95,10 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
     const [remoteReady, setRemoteReady] = useState(false);
     const [pingedCardId, setPingedCardId] = useState<string | null>(null);
     const pingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const [isAHeld, setIsAHeld] = useState(false);
 
+
+    const [user, setUser] = useState<any>(null);
 
     // AI Interpretation
     const [aiLoading, setAiLoading] = useState(false);
@@ -237,7 +242,27 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
         };
         window.history.pushState(null, '', window.location.href);
         window.addEventListener('popstate', handlePopState);
-        return () => window.removeEventListener('popstate', handlePopState);
+        
+        // Keyboard: Mistik Vision (A key hold)
+        const handleKeys = (e: KeyboardEvent) => {
+            if (e.repeat) return;
+            const isInput = ['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName);
+            if (isInput) return;
+
+            if (e.key.toLowerCase() === 'a') {
+                if (e.type === 'keydown') setIsAHeld(true);
+                else setIsAHeld(false);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeys);
+        window.addEventListener('keyup', handleKeys);
+
+        return () => {
+            window.removeEventListener('popstate', handlePopState);
+            window.removeEventListener('keydown', handleKeys);
+            window.removeEventListener('keyup', handleKeys);
+        };
     }, []);
 
 
@@ -306,10 +331,13 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
     }, [roomId, appendLog]);
 
     // ── Supabase Session Sync ──
+    const fetchedRef = useRef<{ done: boolean; roomId: string | null }>({ done: false, roomId: null });
     useEffect(() => {
-        const supabase = createClient();
-        const fetchSession = async () => {
+        if (fetchedRef.current.done && fetchedRef.current.roomId === roomId) return;
+        
+        const syncSession = async () => {
             const { data: { user } } = await supabase.auth.getUser();
+            if (user) setUser(user);
 
             const { data } = await supabase
                 .from('sessions')
@@ -321,8 +349,8 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
 
             if (data) {
                 setSessionId(data.id);
+                fetchedRef.current = { done: true, roomId };
 
-                // Fix role drop: auto-assign consultant if user is the consultant
                 const currentUserIsConsultant = user && data.consultant_id === user.id;
                 if (currentUserIsConsultant) setIsConsultant(true);
 
@@ -337,18 +365,19 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
                         gender: data.client_info.gender
                     });
                 }
-                // Restore cards from database if available
+                
                 if (data.room_state && Array.isArray(data.room_state) && data.room_state.length > 0) {
                     setCards(data.room_state);
                     setMaxZIndex(Math.max(...data.room_state.map((c: CardState) => c.zIndex || 0)) + 1);
                 }
+                
                 if (currentUserIsConsultant && data.status === 'pending') {
                     await supabase.from('sessions').update({ status: 'active' }).eq('id', data.id);
                 }
             }
         };
-        fetchSession();
-    }, [roomId, isConsultant, searchParams.toString()]);
+        syncSession();
+    }, [roomId]);
 
     const handleEndSession = useCallback(async () => {
         if (!isConsultant || !sessionId) {
@@ -779,9 +808,9 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
             socketRef.current.emit("user-ready", socketRef.current.id || Math.random().toString(36).substring(7));
         }
 
-        // 2. Setup User Media (Audio ONLY)
+        // 2. Setup User Media (Audio + Video for Mistik Vision)
         navigator.mediaDevices.getUserMedia({
-            video: false,
+            video: { width: 320, height: 240, facingMode: "user" },
             audio: true
         })
             .then(stream => {
@@ -954,7 +983,7 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
     const refreshLocalMedia = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: false,
+                video: { width: 320, height: 240, facingMode: "user" },
                 audio: true
             });
             streamRef.current = stream;
@@ -1444,6 +1473,7 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
         localReady,
         remoteReady,
         pingedCardId,
+        isAHeld,
 
         // Setters
         setIsSidebarOpen,

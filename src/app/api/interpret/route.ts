@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { GoogleGenAI } from "@google/genai";
 
 export async function POST(req: Request) {
     try {
@@ -9,7 +10,6 @@ export async function POST(req: Request) {
         const name = clientName || "Danışanımız";
         const intentText = focus ? `Danışanın Odaklandığı Konu/Niyet: ${focus}` : "";
 
-        // Ücretsiz çalışan Pollinations.ai Text API'si
         const systemPrompt = `Sen 'Mistik Tarot' adında, kadim bilgilere sahip bir tarot yorumcususun. 
         GÖREVİN: 
         1. Asla imla hatası yapma. Akıcı ve saygın bir İstanbul Türkçesi kullan.
@@ -51,24 +51,54 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Kart bilgisi eksik." }, { status: 400 });
         }
 
-        const res = await fetch('https://text.pollinations.ai/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: userPrompt }
-                ],
-                model: 'openai',
-                seed: Math.floor(Math.random() * 100000),
-            }),
-        });
+        const apiKey = process.env.GEMINI_API_KEY;
+        let interpretation = "";
 
-        if (!res.ok) throw new Error(`AI Api hatası: ${res.statusText}`);
-        const data = await res.text();
+        if (apiKey) {
+            const ai = new GoogleGenAI({ apiKey });
+            const prompt = `${systemPrompt}\n\n${userPrompt}`;
+
+            // Try different models as fallbacks
+            for (const model of ["gemini-2.0-flash", "gemini-1.5-flash"]) {
+                try {
+                    const res = await ai.models.generateContent({ model, contents: prompt });
+                    if (res.text) {
+                        interpretation = res.text;
+                        break;
+                    }
+                } catch (e: any) {
+                    console.warn(`Gemini model ${model} error:`, e.message);
+                    if (e.status === 429) continue; // Rate limit, try next model
+                    break;
+                }
+            }
+        }
+
+        // Fallback if Gemini fails or no key
+        if (!interpretation) {
+            const res = await fetch('https://text.pollinations.ai/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userPrompt }
+                    ],
+                    model: 'openai',
+                    seed: Math.floor(Math.random() * 100000),
+                }),
+            });
+            if (res.ok) {
+                interpretation = await res.text();
+            }
+        }
+
+        if (!interpretation) {
+            throw new Error("Tüm AI servisleri başarısız oldu.");
+        }
 
         return NextResponse.json(
-            { interpretation: data },
+            { interpretation },
             {
                 headers: {
                     'Access-Control-Allow-Origin': '*',

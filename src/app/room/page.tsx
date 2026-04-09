@@ -104,12 +104,6 @@ function RoomContent() {
                     <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 mix-blend-screen" />
                 </div>
 
-                {/* Magical Pointer Highlight */}
-                <motion.div
-                    className="absolute z-0 pointer-events-none w-[600px] h-[600px] rounded-full blur-[120px] opacity-40 mix-blend-screen"
-                    animate={{ left: mousePos.x - 300, top: mousePos.y - 300 }}
-                    style={{ background: `radial-gradient(circle, ${auraColor}33 0%, transparent 70%)` }}
-                />
 
                 <FogOverlay />
                 <MysticAuraParticles auraColor={auraColor} />

@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 
 import { createClient } from "@/utils/supabase/client";
 import Peer from "peerjs";
-import { ActivityLog, CursorData, ChatMessage } from "../types";
+import { ActivityLog, ChatMessage } from "../types";
 import { CardState } from "@/components/TarotCard";
 import { getCardMeaning } from "@/lib/cardData";
 import { getApiUrl } from "@/lib/api";
@@ -55,10 +55,10 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
     // Session Database ID (declared early because auto-save depends on it)
     const [sessionId, setSessionId] = useState<string | null>(null);
 
-    // Auto-save cards to database (debounced 2s)
+    // Auto-save cards to database (debounced 15s)
     const saveCardsTimeout = useRef<NodeJS.Timeout | null>(null);
     useEffect(() => {
-        if (!sessionId || cards.length === 0) return;
+        if (!sessionId || cards.length === 0 || !isConsultant) return;
         if (saveCardsTimeout.current) clearTimeout(saveCardsTimeout.current);
         saveCardsTimeout.current = setTimeout(async () => {
             try {
@@ -99,7 +99,6 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
     const [aiLoading, setAiLoading] = useState(false);
     const [aiResponse, setAiResponse] = useState("");
 
-    const lastCursorEmit = useRef<number>(0);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const socketRef = useRef<any>(null);
 

@@ -97,6 +97,7 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
     const pingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const [isAHeld, setIsAHeld] = useState(false);
     const [remoteStreamObj, setRemoteStreamObj] = useState<MediaStream | null>(null);
+    const aTimerRef = useRef<NodeJS.Timeout | null>(null);
 
 
     const [user, setUser] = useState<any>(null);
@@ -244,15 +245,25 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
         window.history.pushState(null, '', window.location.href);
         window.addEventListener('popstate', handlePopState);
         
-        // Keyboard: Mistik Vision (A key hold)
+        // Keyboard: Mistik Vision (2s Long Press Toggle)
         const handleKeys = (e: KeyboardEvent) => {
             if (e.repeat) return;
             const isInput = ['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName);
             if (isInput) return;
 
             if (e.key.toLowerCase() === 'a') {
-                if (e.type === 'keydown') setIsAHeld(true);
-                else setIsAHeld(false);
+                if (e.type === 'keydown') {
+                    if (aTimerRef.current) clearTimeout(aTimerRef.current);
+                    aTimerRef.current = setTimeout(() => {
+                        setIsAHeld(prev => !prev);
+                        aTimerRef.current = null;
+                    }, 2000);
+                } else if (e.type === 'keyup') {
+                    if (aTimerRef.current) {
+                        clearTimeout(aTimerRef.current);
+                        aTimerRef.current = null;
+                    }
+                }
             }
         };
 

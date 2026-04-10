@@ -96,6 +96,7 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
     const [pingedCardId, setPingedCardId] = useState<string | null>(null);
     const pingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const [isAHeld, setIsAHeld] = useState(false);
+    const [remoteStreamObj, setRemoteStreamObj] = useState<MediaStream | null>(null);
 
 
     const [user, setUser] = useState<any>(null);
@@ -867,6 +868,7 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
                 call.answer(mediaStream);
                 call.on('stream', remoteStream => {
                     console.log("Received remote stream (answering)", remoteStream.id);
+                    setRemoteStreamObj(remoteStream);
                     if (remoteVideoRef.current && remoteVideoRef.current.srcObject !== remoteStream) {
                         remoteVideoRef.current.srcObject = remoteStream;
                         remoteVideoRef.current.onloadedmetadata = () => {
@@ -944,6 +946,7 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
 
         call.on('stream', remoteStream => {
             console.log("Received remote stream (calling)", remoteStream.id);
+            setRemoteStreamObj(remoteStream);
             if (remoteVideoRef.current && remoteVideoRef.current.srcObject !== remoteStream) {
                 remoteVideoRef.current.srcObject = remoteStream;
                 // Ensure playback starts
@@ -1471,9 +1474,9 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
         currentAura,
         isConnecting,
         localReady,
-        remoteReady,
         pingedCardId,
         isAHeld,
+        remoteStreamObj,
 
         // Setters
         setIsSidebarOpen,

@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 import { PlusSquare, Mic, MicOff, X, Sparkles, MousePointer2, MessageCircle, Trash2, Clock, Info, Share2, Maximize, Wand2, Loader2, Feather, Flame, Instagram, Camera } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 import TarotCard from "@/components/TarotCard";
@@ -26,6 +26,27 @@ export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
+function VisionVideo({ remotePeerId, remoteVideoRef, myVideoRef, remoteStream }: any) {
+    const videoRef = remotePeerId ? remoteVideoRef : myVideoRef;
+    
+    useEffect(() => {
+        if (videoRef.current && remoteStream && remotePeerId) {
+            videoRef.current.srcObject = remoteStream;
+            videoRef.current.play().catch(console.error);
+        }
+    }, [remoteStream, remotePeerId, videoRef]);
+
+    return (
+        <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted={!remotePeerId}
+            className="w-full h-full object-cover"
+        />
+    );
+}
+
 function RoomContent() {
     const searchParams = useSearchParams();
     const roomId = searchParams.get('id') || 'lobby';
@@ -38,7 +59,7 @@ function RoomContent() {
         remoteTyping, showEmojiPicker, elapsed, selectedCardId, selectedCard,
         linkCopied, isAmbientOn, isFullscreen, auraColor,
         showShareModal, fullShareUrl, showAurasPanel, currentAura,
-        isConnecting, localReady, remoteReady, pingedCardId, isAHeld,
+        isConnecting, localReady, pingedCardId, isAHeld, remoteStreamObj,
         setIsSidebarOpen, setLocalReady,
         setChatInput, setIsChatOpen, setRemoteFullscreen,
         setShowExitModal, setShowShareModal, setShowEmojiPicker, setSelectedCardId, setAiResponse,
@@ -110,12 +131,11 @@ function RoomContent() {
                             exit={{ opacity: 0, scale: 0.8, y: 20, rotate: 2 }}
                             className="fixed top-24 right-8 z-[100] w-72 aspect-video glass rounded-2xl border-2 border-accent/40 overflow-hidden shadow-[0_0_50px_rgba(139,92,246,0.4)]"
                         >
-                            <video
-                                ref={remotePeerId ? remoteVideoRef : myVideoRef}
-                                autoPlay
-                                playsInline
-                                muted={!remotePeerId}
-                                className="w-full h-full object-cover"
+                            <VisionVideo 
+                                remotePeerId={remotePeerId} 
+                                remoteVideoRef={remoteVideoRef} 
+                                myVideoRef={myVideoRef} 
+                                remoteStream={remoteStreamObj} 
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
                             <div className="absolute bottom-3 left-4 flex items-center gap-3">
@@ -125,7 +145,6 @@ function RoomContent() {
                                 </span>
                                 <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/90 drop-shadow-md">Mistik Vizyon</span>
                             </div>
-                            {/* Mystical scanline effect */}
                             <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(184,164,232,0.05)_50%,transparent_50%)] bg-[length:100%_4px]" />
                         </motion.div>
                     )}
@@ -170,7 +189,7 @@ function RoomContent() {
                     ref={tableRef}
                     className={cn(
                         "absolute inset-0 z-10 w-full h-full perspective-[1000px] overflow-hidden transition-all duration-1000",
-                        (localReady && remoteReady || isConsultant) ? "opacity-100" : "opacity-0 pointer-events-none scale-95 blur-sm"
+                        (localReady && !!remotePeerId || isConsultant) ? "opacity-100" : "opacity-0 pointer-events-none scale-95 blur-sm"
                     )}
                     id="tarot-table"
                 >
@@ -191,7 +210,7 @@ function RoomContent() {
 
                 {/* ═══ MINI MUTUAL HANDSHAKE UI (Floating Widget Top Right) ═══ */}
                 <AnimatePresence>
-                    {(!localReady || !remoteReady) && (
+                    {(!localReady || !!!remotePeerId) && (
                         <motion.div
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
@@ -211,7 +230,7 @@ function RoomContent() {
                                                 ? <span className="text-xs font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-md border border-emerald-500/20">Hazır</span>
                                                 : <span className="text-xs font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-md border border-amber-500/20 animate-pulse">Bekleniyor</span>
                                         ) : (
-                                            remoteReady
+                                            !!remotePeerId
                                                 ? <span className="text-xs font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-md border border-emerald-500/20">Hazır</span>
                                                 : <span className="text-xs font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-md border border-amber-500/20 animate-pulse">Bekleniyor</span>
                                         )}
@@ -227,7 +246,7 @@ function RoomContent() {
                                                 ? <span className="text-xs font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-md border border-emerald-500/20">Hazır</span>
                                                 : <span className="text-xs font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-md border border-amber-500/20 animate-pulse">Bekleniyor</span>
                                         ) : (
-                                            remoteReady
+                                            !!remotePeerId
                                                 ? <span className="text-xs font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-md border border-emerald-500/20">Hazır</span>
                                                 : <span className="text-xs font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-md border border-amber-500/20 animate-pulse">Bekleniyor</span>
                                         )}
@@ -240,7 +259,7 @@ function RoomContent() {
 
                 {/* ═══ CONNECTING OVERLAY (Hidden now that we use Mutual Handshake, but kept for fallback) ═══ */}
                 <AnimatePresence>
-                    {(localReady && remoteReady) && isConnecting && (
+                    {(localReady && !!remotePeerId) && isConnecting && (
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}

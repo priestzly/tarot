@@ -811,7 +811,7 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
 
         // 2. Setup User Media (Audio + Video for Mistik Vision)
         navigator.mediaDevices.getUserMedia({
-            video: { width: 320, height: 240, facingMode: "user" },
+            video: { width: { ideal: 480 }, height: { ideal: 640 }, facingMode: "user" },
             audio: true
         })
             .then(stream => {
@@ -986,7 +986,7 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
     const refreshLocalMedia = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: { width: 320, height: 240, facingMode: "user" },
+                video: { width: { ideal: 480 }, height: { ideal: 640 }, facingMode: "user" },
                 audio: true
             });
             streamRef.current = stream;

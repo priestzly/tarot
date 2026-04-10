@@ -129,7 +129,7 @@ function RoomContent() {
                             initial={{ opacity: 0, scale: 0.8, y: 20, rotate: -2 }}
                             animate={{ opacity: 1, scale: 1, y: 0, rotate: 0 }}
                             exit={{ opacity: 0, scale: 0.8, y: 20, rotate: 2 }}
-                            className="fixed top-24 right-8 z-[100] w-72 aspect-video glass rounded-2xl border-2 border-accent/40 overflow-hidden shadow-[0_0_50px_rgba(139,92,246,0.4)]"
+                            className="fixed top-24 right-8 z-[100] w-60 aspect-[3/4] glass rounded-3xl border-2 border-accent/40 overflow-hidden shadow-[0_0_60px_rgba(139,92,246,0.3)]"
                         >
                             <VisionVideo 
                                 remotePeerId={remotePeerId} 

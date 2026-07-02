@@ -14,14 +14,14 @@ export const getApiUrl = (path: string) => {
     const isCapacitor = (
         window.location.protocol === 'capacitor:' ||
         window.location.protocol === 'file:' ||
-        window.location.hostname === 'localhost' || // common in Capacitor
         // @ts-ignore - Capacitor injects this global
         typeof (window as any).Capacitor !== 'undefined'
     );
     
     if (isCapacitor) {
         // For Mobile (Capacitor), we need the absolute domain where the API is hosted
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://tarot-production-b2ee.up.railway.app';
+        // Replace this with your actual Vercel deployment URL or configure NEXT_PUBLIC_API_URL
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://tarot-beige-pi.vercel.app';
         return `${baseUrl}${normalizedPath}`;
     }
     

@@ -13,7 +13,7 @@ const supabase = createClient();
 
 export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
     // Role & Client Form Data
-    const initialRole = searchParams.get('role') === 'client' ? 'client' : 'consultant';
+    const initialRole = searchParams.get('role') === 'consultant' ? 'consultant' : 'client';
     const [isConsultant, setIsConsultant] = useState(initialRole === 'consultant');
 
 
@@ -363,8 +363,8 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
                 setSessionId(data.id);
                 fetchedRef.current = { done: true, roomId };
 
-                const currentUserIsConsultant = user && data.consultant_id === user.id;
-                if (currentUserIsConsultant) setIsConsultant(true);
+                const currentUserIsConsultant = !!(user && data.consultant_id === user.id);
+                setIsConsultant(currentUserIsConsultant);
 
                 if (!searchParams.get('name') && data.client_info) {
                     setClientProfile({

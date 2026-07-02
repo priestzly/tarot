@@ -8,7 +8,7 @@ export async function GET(request: Request) {
     const error = requestUrl.searchParams.get('error')
     const error_description = requestUrl.searchParams.get('error_description')
 
-    // Railway gibi proxy arkasındaki sunucularda request.url localhost olabilir.
+    // Vercel gibi proxy arkasındaki sunucularda request.url localhost olabilir.
     // Orijinal domaine dönmek için forward headerlarına bakmamız şart.
     let origin = requestUrl.origin;
     const forwardedHost = request.headers.get('x-forwarded-host');

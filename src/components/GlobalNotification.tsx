@@ -268,7 +268,7 @@ export default function GlobalNotification() {
 
         if (!error) {
             setIncomingRequest(null);
-            router.push(`/room?id=${session.room_id}`);
+            router.push(`/room?id=${session.room_id}&role=consultant`);
         } else {
             console.error(error);
         }

@@ -122,7 +122,7 @@ export default function ConsultantDashboard() {
             .eq('id', session.id);
 
         if (!error) {
-            router.push(`/room?id=${session.room_id}`);
+            router.push(`/room?id=${session.room_id}&role=consultant`);
         } else {
             console.error("Failed to accept session", error);
         }
@@ -266,7 +266,7 @@ export default function ConsultantDashboard() {
                                                         Aktif (Devam Ediyor)
                                                     </span>
                                                     <button
-                                                        onClick={() => router.push(`/room?id=${session.room_id}`)}
+                                                        onClick={() => router.push(`/room?id=${session.room_id}&role=consultant`)}
                                                         className="w-full md:w-auto px-6 py-2 bg-accent hover:bg-accent-dim text-white rounded-xl shadow-lg hover:shadow-accent/20 transition-all font-bold"
                                                     >
                                                         Odaya Geri Dön

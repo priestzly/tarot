@@ -94,3 +94,27 @@ export const CARD_DB: Record<number, CardInfo> = {
 export const getCardMeaning = (cardIndex: number): CardInfo => {
     return CARD_DB[cardIndex] || { name: `Kart ${cardIndex}`, element: "?", keywords: "Bilinmeyen kart", meaning: "Bu kartın anlamı henüz eklenmedi." };
 };
+
+export const getCardImage = (index: number, deckType?: 'tarot' | 'rumi' | 'eril' | 'disil'): string => {
+    if (deckType === 'rumi') return `/assets/rumi/${index}.webp`;
+    if (deckType === 'eril') return `/assets/eril-disil/${String(index).padStart(2, '0')}.jpg`;
+    if (deckType === 'disil') return `/assets/disil/${String(index).padStart(2, '0')}.jpg`;
+
+    // Major Arcana: 0-21
+    const majorFiles = [
+        "00-TheFool", "01-TheMagician", "02-TheHighPriestess", "03-TheEmpress", "04-TheEmperor",
+        "05-TheHierophant", "06-TheLovers", "07-TheChariot", "08-Strength", "09-TheHermit",
+        "10-WheelOfFortune", "11-Justice", "12-TheHangedMan", "13-Death", "14-Temperance",
+        "15-TheDevil", "16-TheTower", "17-TheStar", "18-TheMoon", "19-TheSun",
+        "20-Judgement", "21-TheWorld"
+    ];
+    if (index < 22) return `/Cards/${majorFiles[index]}.jpg`;
+
+    // Minor Arcana: 22-77 (4 suits × 14 cards)
+    const minorIndex = index - 22;
+    const suit = Math.floor(minorIndex / 14);
+    const rank = (minorIndex % 14) + 1; // 1-14
+    const suitNames = ["Cups", "Pentacles", "Swords", "Wands"];
+    const paddedRank = rank.toString().padStart(2, '0');
+    return `/Cards/${suitNames[suit]}${paddedRank}.jpg`;
+};

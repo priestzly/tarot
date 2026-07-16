@@ -6,7 +6,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 import TarotCard from "@/components/TarotCard";
-import { getCardMeaning } from "@/lib/cardData";
+import { getCardMeaning, getCardImage } from "@/lib/cardData";
 import { getRumiMeaning } from "@/lib/rumiData";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -60,6 +60,7 @@ function RoomContent() {
         linkCopied, isAmbientOn, isFullscreen, auraColor,
         showShareModal, fullShareUrl, showAurasPanel, currentAura,
         isConnecting, localReady, pingedCardId, isAHeld, remoteStreamObj,
+        isSessionEnded, consultantName,
         setIsSidebarOpen, setLocalReady,
         setChatInput, setIsChatOpen, setRemoteFullscreen,
         setShowExitModal, setShowShareModal, setShowEmojiPicker, setSelectedCardId, setAiResponse,
@@ -505,9 +506,9 @@ function RoomContent() {
                 <StoryGenerator
                     isOpen={showStoryGen}
                     onClose={() => setShowStoryGen(false)}
-                    cardName={selectedCard ? getCardMeaning(selectedCard.cardIndex).name : cards.filter(c => c.isFlipped).length > 0 ? getCardMeaning(cards.filter(c => c.isFlipped)[cards.filter(c => c.isFlipped).length - 1].cardIndex).name : undefined}
-                    cardMeaning={selectedCard ? getCardMeaning(selectedCard.cardIndex).keywords : cards.filter(c => c.isFlipped).length > 0 ? getCardMeaning(cards.filter(c => c.isFlipped)[cards.filter(c => c.isFlipped).length - 1].cardIndex).keywords : undefined}
-                    cardImage={selectedCard ? `/cards/${selectedCard.cardIndex}.webp` : cards.filter(c => c.isFlipped).length > 0 ? `/cards/${cards.filter(c => c.isFlipped)[cards.filter(c => c.isFlipped).length - 1].cardIndex}.webp` : undefined}
+                    cardName={selectedCard ? (selectedCard.deckType === 'rumi' ? getRumiMeaning(selectedCard.cardIndex).name : getCardMeaning(selectedCard.cardIndex).name) : (cards.filter(c => c.isFlipped).length > 0 ? (cards.filter(c => c.isFlipped)[cards.filter(c => c.isFlipped).length - 1].deckType === 'rumi' ? getRumiMeaning(cards.filter(c => c.isFlipped)[cards.filter(c => c.isFlipped).length - 1].cardIndex).name : getCardMeaning(cards.filter(c => c.isFlipped)[cards.filter(c => c.isFlipped).length - 1].cardIndex).name) : undefined)}
+                    cardMeaning={selectedCard ? (selectedCard.deckType === 'rumi' ? getRumiMeaning(selectedCard.cardIndex).keywords : getCardMeaning(selectedCard.cardIndex).keywords) : (cards.filter(c => c.isFlipped).length > 0 ? (cards.filter(c => c.isFlipped)[cards.filter(c => c.isFlipped).length - 1].deckType === 'rumi' ? getRumiMeaning(cards.filter(c => c.isFlipped)[cards.filter(c => c.isFlipped).length - 1].cardIndex).keywords : getCardMeaning(cards.filter(c => c.isFlipped)[cards.filter(c => c.isFlipped).length - 1].cardIndex).keywords) : undefined)}
+                    cardImage={selectedCard ? getCardImage(selectedCard.cardIndex, selectedCard.deckType) : (cards.filter(c => c.isFlipped).length > 0 ? getCardImage(cards.filter(c => c.isFlipped)[cards.filter(c => c.isFlipped).length - 1].cardIndex, cards.filter(c => c.isFlipped)[cards.filter(c => c.isFlipped).length - 1].deckType) : undefined)}
                 />
 
                 {/* ═══ AI INTERPRETATION MODAL ═══ */}
@@ -525,6 +526,62 @@ function RoomContent() {
                     onClose={() => setShowExitModal(false)}
                     onConfirm={handleEndSession}
                 />
+
+                {/* ═══ SESSION ENDED OVERLAY ═══ */}
+                <AnimatePresence>
+                    {isSessionEnded && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-md p-4"
+                        >
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                className="bg-[#12101c] border border-purple-500/30 shadow-[0_0_50px_rgba(168,85,247,0.2)] rounded-[2.5rem] p-8 max-w-md w-full text-center space-y-6 relative overflow-hidden"
+                            >
+                                <div className="absolute -top-12 -right-12 w-48 h-48 bg-purple-500/10 blur-[80px] rounded-full pointer-events-none" />
+                                <div className="absolute -bottom-12 -left-12 w-48 h-48 bg-indigo-500/10 blur-[80px] rounded-full pointer-events-none" />
+
+                                <div className="mx-auto w-16 h-16 rounded-full bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-3xl">
+                                    🔮
+                                </div>
+
+                                <div className="space-y-2">
+                                    <h3 className="text-2xl font-heading font-bold text-white">Görüşme Sonlandırıldı</h3>
+                                    <p className="text-sm text-zinc-400 leading-relaxed">
+                                        Mistik seans sona erdi. Görüşme boyunca yapılan tüm yazışmaları aşağıdaki butona tıklayarak PDF olarak indirebilirsiniz.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-3 pt-4">
+                                    <button
+                                        onClick={async () => {
+                                            const { downloadChatAsPDF } = await import("@/utils/pdf");
+                                            downloadChatAsPDF(
+                                                messages,
+                                                roomId || "MysticRoom",
+                                                !isConsultant ? (searchParams.get('name') || "Danışan") : (clientProfile?.name || "Müşteri"),
+                                                isConsultant ? "Siz" : (consultantName || "Mistik Rehber")
+                                            );
+                                        }}
+                                        className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-widest shadow-lg shadow-purple-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        Sohbet Geçmişini PDF İndir
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            window.location.href = "/";
+                                        }}
+                                        className="w-full py-4 px-6 rounded-2xl border border-white/10 hover:border-white/20 hover:bg-white/5 text-zinc-400 hover:text-white transition-all text-xs font-bold uppercase tracking-widest"
+                                    >
+                                        Ana Sayfaya Dön
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </main >
         </div >
     );

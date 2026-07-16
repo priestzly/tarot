@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { createClient } from "@/utils/supabase/client";
+import { getCardMeaning, getCardImage } from "@/lib/cardData";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -126,6 +127,32 @@ function TarotConsultantsContent() {
     const [isLoadingProfiles, setIsLoadingProfiles] = useState(true);
 
     const supabase = createClient();
+
+    const [dailyCardIndex, setDailyCardIndex] = useState<number | null>(null);
+    const [isDailyFlipped, setIsDailyFlipped] = useState(false);
+
+    useEffect(() => {
+        const today = new Date().toISOString().split("T")[0];
+        const savedDate = localStorage.getItem("daily_card_date");
+        const savedIndex = localStorage.getItem("daily_card_index");
+
+        if (savedDate === today && savedIndex !== null) {
+            setDailyCardIndex(parseInt(savedIndex, 10));
+            setIsDailyFlipped(true);
+        }
+    }, []);
+
+    const handleDailyFlip = () => {
+        if (isDailyFlipped) return;
+        const randomIndex = Math.floor(Math.random() * 78);
+        const today = new Date().toISOString().split("T")[0];
+
+        localStorage.setItem("daily_card_date", today);
+        localStorage.setItem("daily_card_index", randomIndex.toString());
+
+        setDailyCardIndex(randomIndex);
+        setIsDailyFlipped(true);
+    };
 
     const fetchProfile = async (userId: string) => {
         const { data } = await supabase.from("profiles").select("role, full_name, birth_date, zodiac_sign, ascendant_sign").eq("id", userId).maybeSingle();
@@ -331,24 +358,91 @@ function TarotConsultantsContent() {
     // WIZARD STEPS RENDER
     // ==========================================
 
+    const renderDailyFlip = () => {
+        const hasCard = dailyCardIndex !== null;
+        const cardMeaning = hasCard ? getCardMeaning(dailyCardIndex!) : null;
+        const cardImage = hasCard ? getCardImage(dailyCardIndex!, 'tarot') : null;
+
+        return (
+            <div className="shrink-0 w-full md:w-80 bg-white/[0.02] border border-white/5 hover:border-purple-500/20 p-5 rounded-3xl backdrop-blur-xl flex flex-col items-center gap-4 relative overflow-hidden transition-all shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+                <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/5 to-indigo-500/5 pointer-events-none" />
+                <span className="text-[10px] font-bold text-purple-400 tracking-[0.25em] uppercase">Günün Kozmik Çekimi</span>
+                
+                <div 
+                    onClick={handleDailyFlip}
+                    className="relative w-32 h-52 cursor-pointer [perspective:1000px]"
+                >
+                    <motion.div
+                        initial={false}
+                        animate={{ rotateY: isDailyFlipped ? 180 : 0 }}
+                        transition={{ duration: 0.8, ease: "easeInOut" }}
+                        className="w-full h-full relative [transform-style:preserve-3d]"
+                    >
+                        <div className="absolute inset-0 w-full h-full rounded-2xl bg-gradient-to-b from-[#1c1836] to-[#0c0817] border-2 border-purple-500/30 flex flex-col items-center justify-center shadow-lg [backface-visibility:hidden]">
+                            <div className="w-24 h-44 border border-purple-500/10 rounded-xl flex items-center justify-center relative">
+                                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-500/10 via-transparent to-transparent animate-pulse" />
+                                <div className="text-3xl filter drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]">🔮</div>
+                            </div>
+                        </div>
+
+                        <div className="absolute inset-0 w-full h-full rounded-2xl border-2 border-purple-500/40 shadow-xl overflow-hidden [transform:rotateY(180deg)] [backface-visibility:hidden] bg-[#0d0a18]">
+                            {hasCard && (
+                                <img 
+                                    src={cardImage!} 
+                                    alt={cardMeaning?.name} 
+                                    className="w-full h-full object-cover"
+                                />
+                            )}
+                        </div>
+                    </motion.div>
+                </div>
+
+                <div className="text-center w-full min-h-[50px] flex flex-col justify-center">
+                    {!isDailyFlipped ? (
+                        <p className="text-xs text-zinc-400 leading-normal px-4">
+                            Gününüzün enerjisini keşfetmek için kartı çevirin. ✨
+                        </p>
+                    ) : (
+                        <motion.div 
+                            initial={{ opacity: 0, y: 5 }} 
+                            animate={{ opacity: 1, y: 0 }}
+                            className="space-y-1.5"
+                        >
+                            <h4 className="text-sm font-bold text-white tracking-wide">
+                                {cardMeaning?.name}
+                            </h4>
+                            <p className="text-[11px] text-purple-300 font-medium italic leading-relaxed px-2">
+                                {cardMeaning?.keywords}
+                            </p>
+                        </motion.div>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
     const renderWelcome = () => (
         <motion.div key="welcome" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="space-y-12">
 
             {/* Header & Back Action */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/5 pb-8 relative">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-white/5 pb-8 relative">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-fuchsia-500/10 blur-[100px] rounded-full pointer-events-none" />
 
-                <div>
+                <div className="flex-1">
                     <button onClick={() => router.push('/')} className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-zinc-500 hover:text-white transition-colors mb-6">
                         <ArrowLeft className="w-4 h-4" /> Ana Sayfa
                     </button>
                     <h1 className="text-4xl md:text-5xl font-heading font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-purple-200 to-indigo-300">
                         Tarot Kozmosu
                     </h1>
-                    <p className="text-sm text-zinc-400 mt-2 font-medium max-w-sm">
+                    <p className="text-sm text-zinc-400 mt-2 font-medium max-w-sm leading-relaxed">
                         Mistik arayüz aracılığıyla Yapay Zeka'dan günlük yorum al veya uzman danışmanlarla yüz yüze seansa bağlan.
                     </p>
                 </div>
+
+                {/* Günlük Kart Çevirme */}
+                {renderDailyFlip()}
+            </div>
 
                 {/* Consultant Incoming Requests */}
                 {isConsultant && clientSessions.filter(s => s.status === 'pending' && s.consultant_id === user?.id).map(session => (
@@ -443,7 +537,6 @@ function TarotConsultantsContent() {
                         </button>
                     </div>
                 )}
-            </div>
 
             {/* AI FEATURE CARD */}
             <section className="relative">

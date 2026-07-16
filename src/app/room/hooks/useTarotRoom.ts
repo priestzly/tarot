@@ -101,6 +101,8 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
 
 
     const [user, setUser] = useState<any>(null);
+    const [isSessionEnded, setIsSessionEnded] = useState(false);
+    const [consultantName, setConsultantName] = useState("");
 
     // AI Interpretation
     const [aiLoading, setAiLoading] = useState(false);
@@ -353,14 +355,16 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
 
             const { data } = await supabase
                 .from('sessions')
-                .select('*')
-                .eq('room_id', roomId)
+                .select('*, consultant:consultants(display_name)')
                 .in('status', ['pending', 'active'])
-                .order('created_at', { ascending: false })
+                .eq('room_id', roomId)
                 .maybeSingle();
 
             if (data) {
                 setSessionId(data.id);
+                if ((data as any).consultant?.display_name) {
+                    setConsultantName((data as any).consultant.display_name);
+                }
                 fetchedRef.current = { done: true, roomId };
 
                 const currentUserIsConsultant = !!(user && data.consultant_id === user.id);
@@ -398,8 +402,9 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
         }
         const supabase = createClient();
         await supabase.from('sessions').update({ status: 'completed' }).eq('id', sessionId);
-        window.location.href = "/";
-    }, [isConsultant, sessionId]);
+        socketRef.current?.emit("session-ended", roomId);
+        setIsSessionEnded(true);
+    }, [isConsultant, sessionId, roomId]);
 
     // ── Screenshot ──
     const captureScreenshot = async () => {
@@ -797,6 +802,10 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
 
         socket.on("aura-updated", (aura: string) => {
             setCurrentAura(aura);
+        });
+
+        socket.on("session-ended", () => {
+            setIsSessionEnded(true);
         });
 
         return () => {
@@ -1485,6 +1494,8 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
         currentAura,
         isConnecting,
         localReady,
+        isSessionEnded,
+        consultantName,
         pingedCardId,
         isAHeld,
         remoteStreamObj,

@@ -12,6 +12,7 @@ export default function GlobalNotification() {
     const [user, setUser] = useState<any>(null);
     const [onlineClients, setOnlineClients] = useState<Set<string>>(new Set());
     const [isConsultant, setIsConsultant] = useState(false);
+    const [isOnline, setIsOnline] = useState(false);
 
     const router = useRouter();
     const supabase = createClient();
@@ -27,12 +28,20 @@ export default function GlobalNotification() {
             if (currentUser) {
                 const { data: consultant } = await supabase
                     .from("consultants")
-                    .select("id")
+                    .select("id, is_online")
                     .eq("id", currentUser.id)
                     .maybeSingle();
-                if (isMounted) setIsConsultant(!!consultant);
+                if (isMounted) {
+                    setIsConsultant(!!consultant);
+                    if (consultant) {
+                        setIsOnline(consultant.is_online);
+                    }
+                }
             } else {
-                if (isMounted) setIsConsultant(false);
+                if (isMounted) {
+                    setIsConsultant(false);
+                    setIsOnline(false);
+                }
             }
         };
 
@@ -304,7 +313,22 @@ export default function GlobalNotification() {
         setIncomingRequest(null);
     };
 
+    const toggleOnline = async () => {
+        if (!user) return;
+        const newStatus = !isOnline;
+        setIsOnline(newStatus);
+        const { error } = await supabase
+            .from("consultants")
+            .update({ is_online: newStatus })
+            .eq("id", user.id);
+        if (error) {
+            setIsOnline(!newStatus); // revert
+            alert("Durum güncellenirken hata oluştu.");
+        }
+    };
+
     return (
+        <>
         <AnimatePresence>
             {incomingRequest && (
                 <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -376,5 +400,35 @@ export default function GlobalNotification() {
                 </div>
             )}
         </AnimatePresence>
+
+        {/* Yüzen Danışman Çevrimiçi/Çevrimdışı Durum Göstergesi */}
+        <AnimatePresence>
+            {isConsultant && user && (
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                    className="fixed bottom-6 left-6 z-[9999] flex items-center gap-3 bg-[#161426]/90 backdrop-blur-xl border border-white/10 hover:border-purple-500/30 p-3 rounded-2xl shadow-xl transition-colors cursor-pointer select-none"
+                    onClick={toggleOnline}
+                >
+                    <div className="relative flex h-3 w-3">
+                        {isOnline && (
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        )}
+                        <span className={`relative inline-flex rounded-full h-3 w-3 ${isOnline ? "bg-emerald-500" : "bg-zinc-500"}`}></span>
+                    </div>
+                    <div className="flex flex-col text-left">
+                        <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest leading-none">Mistik Durum</span>
+                        <span className="text-xs font-bold text-white leading-tight mt-0.5">
+                            {isOnline ? "Çevrimiçi" : "Çevrimdışı (Dinleniyor)"}
+                        </span>
+                    </div>
+                    <div className="ml-1 pl-2 border-l border-white/5 text-[10px] font-bold text-purple-400 uppercase tracking-wider">
+                        Değiştir
+                    </div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+        </>
     );
 }

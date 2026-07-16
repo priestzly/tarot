@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
     User, Calendar, Moon, Star, Sparkles, LogOut,
     ChevronRight, Heart, Brain, MapPin, Edit3, Save, X, Loader2, Clock, History
@@ -18,6 +18,7 @@ interface Profile {
     zodiac_sign: string;
     ascendant_sign: string;
     interests: string[];
+    credits?: number;
 }
 
 const ZODIAC_SIGNS = [
@@ -33,6 +34,17 @@ export default function ProfilePage() {
     const [saving, setSaving] = useState(false);
     const [user, setUser] = useState<any>(null);
     const [history, setHistory] = useState<any[]>([]);
+    const [isConsultant, setIsConsultant] = useState(false);
+
+    // Kozmik Kredi Yükleme Modali States
+    const [isCreditModalOpen, setIsCreditModalOpen] = useState(false);
+    const [selectedCreditPackage, setSelectedCreditPackage] = useState<any>(null);
+    const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+    const [paymentSuccess, setPaymentSuccess] = useState(false);
+    const [cardNumber, setCardNumber] = useState("");
+    const [cardExpiry, setCardExpiry] = useState("");
+    const [cardCvv, setCardCvv] = useState("");
+    const [cardName, setCardName] = useState("");
 
     const supabase = createClient();
     const router = useRouter();
@@ -70,6 +82,16 @@ export default function ProfilePage() {
                 setEditedProfile(emptyProfile);
             }
 
+            const { data: consultantData } = await supabase
+                .from("consultants")
+                .select("id")
+                .eq("id", user.id)
+                .maybeSingle();
+
+            if (consultantData) {
+                setIsConsultant(true);
+            }
+
             // Fetch session history (excluding active as they are on homepage, EXCEPT active ones that are accepted offline appointments)
             const { data: sessionData } = await supabase
                 .from("sessions")
@@ -88,6 +110,36 @@ export default function ProfilePage() {
         }
         loadProfile();
     }, []);
+
+    const handleBuyCredits = async (amount: number) => {
+        setIsProcessingPayment(true);
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        const currentCredits = profile?.credits ?? 0;
+        const newCredits = currentCredits + amount;
+        
+        const { error } = await supabase
+            .from("profiles")
+            .update({ credits: newCredits })
+            .eq("id", user?.id);
+            
+        if (error) {
+            alert("Kredi yüklenirken bir hata oluştu: " + error.message);
+        } else {
+            setProfile((prev: any) => prev ? { ...prev, credits: newCredits } : null);
+            setPaymentSuccess(true);
+            setTimeout(() => {
+                setPaymentSuccess(false);
+                setIsCreditModalOpen(false);
+                setSelectedCreditPackage(null);
+                setCardNumber("");
+                setCardExpiry("");
+                setCardCvv("");
+                setCardName("");
+            }, 2000);
+        }
+        setIsProcessingPayment(false);
+    };
 
     const handleSave = async () => {
         if (!editedProfile || !user) return;
@@ -165,6 +217,21 @@ export default function ProfilePage() {
                         <Sparkles className="w-6 h-6 text-accent/20" />
                     </div>
 
+                    {isConsultant && (
+                        <div className="mb-8 p-5 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <p className="text-xs font-bold text-purple-300 uppercase tracking-widest">Danışman Yetkisi</p>
+                                <p className="text-[11px] text-zinc-400 mt-1">Seans taleplerinizi yönetmek ve durumunuzu çevrimiçi/çevrimdışı yapmak için paneli ziyaret edin.</p>
+                            </div>
+                            <button
+                                onClick={() => router.push("/dashboard")}
+                                className="shrink-0 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all active:scale-95 shadow-lg shadow-purple-500/20 flex items-center gap-1.5"
+                            >
+                                <Sparkles className="w-3.5 h-3.5" /> Danışman Paneli
+                            </button>
+                        </div>
+                    )}
+
                     <div className="flex flex-col items-center mb-10">
                         <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-purple-600 to-amber-400 p-1 mb-4 shadow-xl shadow-purple-500/20">
                             <div className="w-full h-full rounded-full bg-[#161623] flex items-center justify-center overflow-hidden border-2 border-[#161623]">
@@ -180,6 +247,22 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="space-y-6">
+                        {/* Kredi / Cüzdan Bilgisi */}
+                        <div className="p-4 bg-gradient-to-r from-amber-500/5 to-orange-500/5 border border-amber-500/20 rounded-2xl flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <span className="text-2xl">🪙</span>
+                                <div>
+                                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">Kozmik Bakiyeniz</p>
+                                    <p className="text-lg font-black text-amber-400 mt-0.5">{profile?.credits ?? 0} Kredi</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setIsCreditModalOpen(true)}
+                                className="px-4 py-2 bg-amber-500 text-black hover:bg-amber-400 text-xs font-bold uppercase tracking-wider rounded-xl transition-all active:scale-95 shadow-md shadow-amber-500/10"
+                            >
+                                + Kredi Yükle
+                            </button>
+                        </div>
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-accent flex items-center gap-2">
                                 <Star className="w-4 h-4" />
@@ -383,6 +466,155 @@ export default function ProfilePage() {
                     </p>
                 </div>
             </div>
+
+            {/* KOZMİK KREDİ SATIN ALMA MODALİ */}
+            <AnimatePresence>
+                {isCreditModalOpen && (
+                    <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="w-full max-w-md bg-[#0e0a1a]/95 border border-purple-500/30 shadow-[0_0_50px_rgba(168,85,247,0.25)] rounded-[2.5rem] overflow-hidden relative p-8 text-center space-y-6"
+                        >
+                            <button 
+                                onClick={() => { setIsCreditModalOpen(false); setSelectedCreditPackage(null); }}
+                                className="absolute top-6 right-6 text-zinc-500 hover:text-white"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+
+                            {!selectedCreditPackage ? (
+                                <>
+                                    <div className="space-y-2">
+                                        <span className="px-3 py-1 bg-amber-500/10 text-amber-400 rounded-full text-[9px] font-bold uppercase tracking-[0.25em] border border-amber-500/20 inline-flex items-center gap-1.5">
+                                            🪙 KOZMİK CÜZDAN
+                                        </span>
+                                        <h2 className="text-2xl font-bold font-heading text-white tracking-wide">Kredi Yükle</h2>
+                                        <p className="text-xs text-zinc-400">Fal paketlerini satın almak ve danışmanlarla seans başlatmak için Kozmik Kredi yükleyin.</p>
+                                    </div>
+
+                                    {/* Wallet Info */}
+                                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 flex justify-between items-center text-left">
+                                        <div>
+                                            <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">Mevcut Bakiyeniz</p>
+                                            <p className="text-xl font-black text-amber-400 mt-0.5">🪙 {profile?.credits ?? 0} Kredi</p>
+                                        </div>
+                                        <span className="text-xs text-purple-300 font-medium italic">1 Kredi = 0.50 ₺</span>
+                                    </div>
+
+                                    {/* Packages */}
+                                    <div className="space-y-3">
+                                        {[
+                                            { amount: 100, price: "₺50", title: "🔮 Kozmik Başlangıç" },
+                                            { amount: 250, price: "₺100", title: "🌟 Mistik Paket", popular: true },
+                                            { amount: 500, price: "₺180", title: "👑 Kraliyet Cüzdanı" }
+                                        ].map((pkg) => (
+                                            <button
+                                                key={pkg.amount}
+                                                onClick={() => setSelectedCreditPackage(pkg)}
+                                                className="w-full bg-[#120e24] hover:bg-[#1a1435] border border-white/5 hover:border-purple-500/30 p-4 rounded-2xl flex justify-between items-center text-left transition-all active:scale-[0.99] relative group"
+                                            >
+                                                {pkg.popular && (
+                                                    <span className="absolute top-0 right-12 -translate-y-1/2 bg-amber-500 text-black text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
+                                                        En Popüler
+                                                    </span>
+                                                )}
+                                                <div>
+                                                    <p className="text-xs font-bold text-white group-hover:text-purple-300 transition-colors">{pkg.title}</p>
+                                                    <p className="text-sm font-black text-amber-400 mt-1">🪙 {pkg.amount} Kredi</p>
+                                                </div>
+                                                <span className="text-xs font-black text-white bg-white/5 px-3 py-1.5 rounded-xl border border-white/10 group-hover:bg-purple-600 transition-all">{pkg.price}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </>
+                            ) : paymentSuccess ? (
+                                <div className="py-8 space-y-4">
+                                    <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto text-3xl shadow-lg shadow-emerald-500/20">
+                                        ✓
+                                    </div>
+                                    <h3 className="text-xl font-bold text-white">Yükleme Başarılı!</h3>
+                                    <p className="text-xs text-zinc-400">🪙 {selectedCreditPackage.amount} Kredi hesabınıza başarıyla yüklendi. Keyifli fallar dileriz!</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="space-y-1">
+                                        <h2 className="text-xl font-bold text-white font-heading">Güvenli Ödeme</h2>
+                                        <p className="text-xs text-zinc-400">Yüklenecek: <strong className="text-amber-400">🪙 {selectedCreditPackage.amount} Kredi ({selectedCreditPackage.price})</strong></p>
+                                    </div>
+
+                                    {/* Mock Payment Form */}
+                                    <div className="space-y-4 text-left">
+                                        <div>
+                                            <label className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold block mb-1">Kart Sahibi</label>
+                                            <input 
+                                                type="text" 
+                                                placeholder="Kart Üzerindeki İsim"
+                                                value={cardName}
+                                                onChange={e => setCardName(e.target.value)}
+                                                className="w-full bg-[#120e24] border border-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600/50 focus:outline-none focus:border-purple-500/50"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold block mb-1">Kart Numarası</label>
+                                            <input 
+                                                type="text" 
+                                                placeholder="0000 0000 0000 0000"
+                                                maxLength={19}
+                                                value={cardNumber}
+                                                onChange={e => setCardNumber(e.target.value)}
+                                                className="w-full bg-[#120e24] border border-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600/50 focus:outline-none focus:border-purple-500/50"
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold block mb-1">Son Kullanma</label>
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="AA/YY"
+                                                    maxLength={5}
+                                                    value={cardExpiry}
+                                                    onChange={e => setCardExpiry(e.target.value)}
+                                                    className="w-full bg-[#120e24] border border-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600/50 focus:outline-none focus:border-purple-500/50 text-center"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold block mb-1">CVC / CVV</label>
+                                                <input 
+                                                    type="password" 
+                                                    placeholder="123"
+                                                    maxLength={3}
+                                                    value={cardCvv}
+                                                    onChange={e => setCardCvv(e.target.value)}
+                                                    className="w-full bg-[#120e24] border border-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600/50 focus:outline-none focus:border-purple-500/50 text-center"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-3 pt-2">
+                                        <button
+                                            onClick={() => setSelectedCreditPackage(null)}
+                                            disabled={isProcessingPayment}
+                                            className="flex-1 py-3.5 px-6 rounded-2xl border border-white/10 hover:border-purple-500/20 text-zinc-400 hover:text-white transition-all font-bold text-xs uppercase tracking-widest disabled:opacity-50"
+                                        >
+                                            Geri Dön
+                                        </button>
+                                        <button
+                                            onClick={() => handleBuyCredits(selectedCreditPackage.amount)}
+                                            disabled={isProcessingPayment || !cardName || !cardNumber}
+                                            className="flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 hover:brightness-110 active:scale-95 text-black transition-all font-bold text-xs uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-2"
+                                        >
+                                            {isProcessingPayment ? "⏳ Lütfen Bekleyin..." : "Kredi Yükle"}
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

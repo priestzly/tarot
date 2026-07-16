@@ -24,14 +24,15 @@ type ReadingPackage = {
     icon: React.ReactNode;
     desc: string;
     price?: string;
+    cost: number;
 };
 
 const PACKAGES: ReadingPackage[] = [
-    { id: "standard", name: "Standart Açılım", cards: 3, price: "₺150", icon: <Sparkles className="w-5 h-5" />, desc: "Geçmiş, Şimdi ve Gelecek üzerine genel bir bakış. En popüler seçim." },
-    { id: "synastry", name: "İlişki / Sinastri", cards: 7, price: "₺250", icon: <Heart className="w-5 h-5" />, desc: "İki kişi arasındaki dinamiği, uyumu ve geleceği analiz eder." },
-    { id: "matrix", name: "Gelişmiş Matris", cards: 9, price: "₺300", icon: <Eye className="w-5 h-5" />, desc: "Mevcut durumların 3x3 detaylı haritası ile derinlemesine analiz." },
-    { id: "celtic", name: "Kelt Haçı", cards: 10, price: "₺350", icon: <Star className="w-5 h-5" />, desc: "Derinlemesine ve kapsamlı bir hayat ve olay analizi okuması." },
-    { id: "astrological", name: "Astrolojik 12 Ev", cards: 12, price: "₺450", icon: <Moon className="w-5 h-5" />, desc: "Yılın 12 ayına veya hayatın 12 alanına profesyonel detaylı bakış." },
+    { id: "standard", name: "Standart Açılım", cards: 3, price: "100 Kredi", cost: 100, icon: <Sparkles className="w-5 h-5" />, desc: "Geçmiş, Şimdi ve Gelecek üzerine genel bir bakış. En popüler seçim." },
+    { id: "synastry", name: "İlişki / Sinastri", cards: 7, price: "150 Kredi", cost: 150, icon: <Heart className="w-5 h-5" />, desc: "İki kişi arasındaki dinamiği, uyumu ve geleceği analiz eder." },
+    { id: "matrix", name: "Gelişmiş Matris", cards: 9, price: "200 Kredi", cost: 200, icon: <Eye className="w-5 h-5" />, desc: "Mevcut durumların 3x3 detaylı haritası ile derinlemesine analiz." },
+    { id: "celtic", name: "Kelt Haçı", cards: 10, price: "250 Kredi", cost: 250, icon: <Star className="w-5 h-5" />, desc: "Derinlemesine ve kapsamlı bir hayat ve olay analizi okuması." },
+    { id: "astrological", name: "Astrolojik 12 Ev", cards: 12, price: "300 Kredi", cost: 300, icon: <Moon className="w-5 h-5" />, desc: "Yılın 12 ayına veya hayatın 12 alanına profesyonel detaylı bakış." },
 ];
 
 function calculateSoulCard(date: Date): { number: number; name: string } {
@@ -131,6 +132,16 @@ function TarotConsultantsContent() {
     const [dailyCardIndex, setDailyCardIndex] = useState<number | null>(null);
     const [isDailyFlipped, setIsDailyFlipped] = useState(false);
 
+    // Kozmik Kredi Yükleme Modali States
+    const [isCreditModalOpen, setIsCreditModalOpen] = useState(false);
+    const [selectedCreditPackage, setSelectedCreditPackage] = useState<any>(null);
+    const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+    const [paymentSuccess, setPaymentSuccess] = useState(false);
+    const [cardNumber, setCardNumber] = useState("");
+    const [cardExpiry, setCardExpiry] = useState("");
+    const [cardCvv, setCardCvv] = useState("");
+    const [cardName, setCardName] = useState("");
+
     useEffect(() => {
         const today = new Date().toISOString().split("T")[0];
         const savedDate = localStorage.getItem("daily_card_date");
@@ -155,7 +166,7 @@ function TarotConsultantsContent() {
     };
 
     const fetchProfile = async (userId: string) => {
-        const { data } = await supabase.from("profiles").select("role, full_name, birth_date, zodiac_sign, ascendant_sign").eq("id", userId).maybeSingle();
+        const { data } = await supabase.from("profiles").select("role, full_name, birth_date, zodiac_sign, ascendant_sign, credits").eq("id", userId).maybeSingle();
         if (data) setProfile(data);
     };
 
@@ -317,6 +328,36 @@ function TarotConsultantsContent() {
         setClientName(name); setBirthDate(birth); setBirthTime(time); setStep("client_step3_focus");
     };
 
+    const handleBuyCredits = async (amount: number) => {
+        setIsProcessingPayment(true);
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        const currentCredits = profile?.credits ?? 0;
+        const newCredits = currentCredits + amount;
+        
+        const { error } = await supabase
+            .from("profiles")
+            .update({ credits: newCredits })
+            .eq("id", user.id);
+            
+        if (error) {
+            alert("Kredi yüklenirken bir hata oluştu: " + error.message);
+        } else {
+            setProfile((prev: any) => prev ? { ...prev, credits: newCredits } : null);
+            setPaymentSuccess(true);
+            setTimeout(() => {
+                setPaymentSuccess(false);
+                setIsCreditModalOpen(false);
+                setSelectedCreditPackage(null);
+                setCardNumber("");
+                setCardExpiry("");
+                setCardCvv("");
+                setCardName("");
+            }, 2000);
+        }
+        setIsProcessingPayment(false);
+    };
+
     const submitClientForm = async () => {
         if (!selectedConsultant) { alert("Lütfen önce bir danışman seçin."); return; }
         if (!clientName || !birthDate) { alert("İsim veya doğum tarihi eksik. Lütfen bilgilerinizi kontrol edin."); return; }
@@ -324,6 +365,17 @@ function TarotConsultantsContent() {
 
         if (readingFocus === "İlişki Danışmanı" && !gender) { alert("Lütfen enerji seçimi yapın."); return; }
         else if (readingFocus !== "İlişki Danışmanı" && !selectedPackage) { alert("Lütfen bir paket seçin."); return; }
+
+        // --- KREDİ KONTROLÜ VE DÜŞÜMÜ ---
+        const pkg = PACKAGES.find(p => p.id === selectedPackage);
+        const cost = readingFocus === "İlişki Danışmanı" ? 150 : (pkg?.cost || 100);
+        const userCredits = profile?.credits ?? 0;
+
+        if (userCredits < cost) {
+            alert(`Yetersiz Kredi! Bu seans için ${cost} krediye ihtiyacınız var. Mevcut bakiyeniz: ${userCredits} kredi. Lütfen bakiye yükleyin.`);
+            setIsCreditModalOpen(true);
+            return;
+        }
 
         const isOffline = !selectedConsultant.is_online;
         if (!isOffline) { setIsWaitingForConsultant(true); }
@@ -335,6 +387,23 @@ function TarotConsultantsContent() {
             cards: readingFocus === "İlişki Danışmanı" ? 1 : (PACKAGES.find(p => p.id === selectedPackage)?.cards || 3),
             is_offline_request: isOffline
         };
+
+        // Krediyi veritabanında düş
+        const newCredits = userCredits - cost;
+        const { error: deductError } = await supabase
+            .from("profiles")
+            .update({ credits: newCredits })
+            .eq("id", user.id);
+
+        if (deductError) {
+            console.error(deductError);
+            alert("Ödeme işlemi (kredi düşümü) başarısız oldu. Lütfen tekrar deneyin.");
+            setIsWaitingForConsultant(false);
+            return;
+        }
+
+        // Yerel bakiyeyi güncelle
+        setProfile((prev: any) => prev ? { ...prev, credits: newCredits } : null);
 
         const { data, error } = await supabase.from('sessions').insert({
             consultant_id: selectedConsultant.id, status: 'pending', room_id: roomCode, client_info: clientInfo, client_id: user ? user.id : null
@@ -451,9 +520,21 @@ function TarotConsultantsContent() {
                     {/* Header */}
                     <div className="relative pb-6 border-b border-white/5">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-fuchsia-500/5 blur-[100px] rounded-full pointer-events-none" />
-                        <button onClick={() => router.push('/')} className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-zinc-500 hover:text-white transition-colors mb-6">
-                            <ArrowLeft className="w-4 h-4" /> Ana Sayfa
-                        </button>
+                        <div className="flex items-center justify-between mb-6">
+                            <button onClick={() => router.push('/')} className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-zinc-500 hover:text-white transition-colors">
+                                <ArrowLeft className="w-4 h-4" /> Ana Sayfa
+                            </button>
+                            
+                            {user && (
+                                <div 
+                                    onClick={() => setIsCreditModalOpen(true)}
+                                    className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 px-4 py-1.5 rounded-full cursor-pointer hover:bg-amber-500/20 transition-all active:scale-95 shadow-[0_0_15px_rgba(245,158,11,0.15)]"
+                                >
+                                    <span className="text-xs font-bold text-amber-400">🪙 {profile?.credits ?? 0} Kredi</span>
+                                    <span className="text-[9px] uppercase tracking-widest font-black text-amber-500">+ YÜKLE</span>
+                                </div>
+                            )}
+                        </div>
                         <h1 className="text-4xl md:text-5xl font-heading font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-purple-200 to-indigo-300">
                             Tarot Kozmosu
                         </h1>
@@ -1005,6 +1086,155 @@ function TarotConsultantsContent() {
                             </button>
                         </div>
                     </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* KOZMİK KREDİ SATIN ALMA MODALİ */}
+            <AnimatePresence>
+                {isCreditModalOpen && (
+                    <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="w-full max-w-md bg-[#0e0a1a]/95 border border-purple-500/30 shadow-[0_0_50px_rgba(168,85,247,0.25)] rounded-[2.5rem] overflow-hidden relative p-8 text-center space-y-6"
+                        >
+                            <button 
+                                onClick={() => { setIsCreditModalOpen(false); setSelectedCreditPackage(null); }}
+                                className="absolute top-6 right-6 text-zinc-500 hover:text-white"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+
+                            {!selectedCreditPackage ? (
+                                <>
+                                    <div className="space-y-2">
+                                        <span className="px-3 py-1 bg-amber-500/10 text-amber-400 rounded-full text-[9px] font-bold uppercase tracking-[0.25em] border border-amber-500/20 inline-flex items-center gap-1.5">
+                                            🪙 KOZMİK CÜZDAN
+                                        </span>
+                                        <h2 className="text-2xl font-bold font-heading text-white tracking-wide">Kredi Yükle</h2>
+                                        <p className="text-xs text-zinc-400">Fal paketlerini satın almak ve danışmanlarla seans başlatmak için Kozmik Kredi yükleyin.</p>
+                                    </div>
+
+                                    {/* Wallet Info */}
+                                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 flex justify-between items-center text-left">
+                                        <div>
+                                            <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">Mevcut Bakiyeniz</p>
+                                            <p className="text-xl font-black text-amber-400 mt-0.5">🪙 {profile?.credits ?? 0} Kredi</p>
+                                        </div>
+                                        <span className="text-xs text-purple-300 font-medium italic">1 Kredi = 0.50 ₺</span>
+                                    </div>
+
+                                    {/* Packages */}
+                                    <div className="space-y-3">
+                                        {[
+                                            { amount: 100, price: "₺50", title: "🔮 Kozmik Başlangıç" },
+                                            { amount: 250, price: "₺100", title: "🌟 Mistik Paket", popular: true },
+                                            { amount: 500, price: "₺180", title: "👑 Kraliyet Cüzdanı" }
+                                        ].map((pkg) => (
+                                            <button
+                                                key={pkg.amount}
+                                                onClick={() => setSelectedCreditPackage(pkg)}
+                                                className="w-full bg-[#120e24] hover:bg-[#1a1435] border border-white/5 hover:border-purple-500/30 p-4 rounded-2xl flex justify-between items-center text-left transition-all active:scale-[0.99] relative group"
+                                            >
+                                                {pkg.popular && (
+                                                    <span className="absolute top-0 right-12 -translate-y-1/2 bg-amber-500 text-black text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
+                                                        En Popüler
+                                                    </span>
+                                                )}
+                                                <div>
+                                                    <p className="text-xs font-bold text-white group-hover:text-purple-300 transition-colors">{pkg.title}</p>
+                                                    <p className="text-sm font-black text-amber-400 mt-1">🪙 {pkg.amount} Kredi</p>
+                                                </div>
+                                                <span className="text-xs font-black text-white bg-white/5 px-3 py-1.5 rounded-xl border border-white/10 group-hover:bg-purple-600 transition-all">{pkg.price}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </>
+                            ) : paymentSuccess ? (
+                                <div className="py-8 space-y-4">
+                                    <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto text-3xl shadow-lg shadow-emerald-500/20">
+                                        ✓
+                                    </div>
+                                    <h3 className="text-xl font-bold text-white">Yükleme Başarılı!</h3>
+                                    <p className="text-xs text-zinc-400">🪙 {selectedCreditPackage.amount} Kredi hesabınıza başarıyla yüklendi. Keyifli fallar dileriz!</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="space-y-1">
+                                        <h2 className="text-xl font-bold text-white font-heading">Güvenli Ödeme</h2>
+                                        <p className="text-xs text-zinc-400">Yüklenecek: <strong className="text-amber-400">🪙 {selectedCreditPackage.amount} Kredi ({selectedCreditPackage.price})</strong></p>
+                                    </div>
+
+                                    {/* Mock Payment Form */}
+                                    <div className="space-y-4 text-left">
+                                        <div>
+                                            <label className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold block mb-1">Kart Sahibi</label>
+                                            <input 
+                                                type="text" 
+                                                placeholder="Kart Üzerindeki İsim"
+                                                value={cardName}
+                                                onChange={e => setCardName(e.target.value)}
+                                                className="w-full bg-[#120e24] border border-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600/50 focus:outline-none focus:border-purple-500/50"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold block mb-1">Kart Numarası</label>
+                                            <input 
+                                                type="text" 
+                                                placeholder="0000 0000 0000 0000"
+                                                maxLength={19}
+                                                value={cardNumber}
+                                                onChange={e => setCardNumber(e.target.value)}
+                                                className="w-full bg-[#120e24] border border-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600/50 focus:outline-none focus:border-purple-500/50"
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold block mb-1">Son Kullanma</label>
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="AA/YY"
+                                                    maxLength={5}
+                                                    value={cardExpiry}
+                                                    onChange={e => setCardExpiry(e.target.value)}
+                                                    className="w-full bg-[#120e24] border border-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600/50 focus:outline-none focus:border-purple-500/50 text-center"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold block mb-1">CVC / CVV</label>
+                                                <input 
+                                                    type="password" 
+                                                    placeholder="123"
+                                                    maxLength={3}
+                                                    value={cardCvv}
+                                                    onChange={e => setCardCvv(e.target.value)}
+                                                    className="w-full bg-[#120e24] border border-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600/50 focus:outline-none focus:border-purple-500/50 text-center"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-3 pt-2">
+                                        <button
+                                            onClick={() => setSelectedCreditPackage(null)}
+                                            disabled={isProcessingPayment}
+                                            className="flex-1 py-3.5 px-6 rounded-2xl border border-white/10 hover:border-purple-500/20 text-zinc-400 hover:text-white transition-all font-bold text-xs uppercase tracking-widest disabled:opacity-50"
+                                        >
+                                            Geri Dön
+                                        </button>
+                                        <button
+                                            onClick={() => handleBuyCredits(selectedCreditPackage.amount)}
+                                            disabled={isProcessingPayment || !cardName || !cardNumber}
+                                            className="flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 hover:brightness-110 active:scale-95 text-black transition-all font-bold text-xs uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-2"
+                                        >
+                                            {isProcessingPayment ? "⏳ Lütfen Bekleyin..." : "Kredi Yükle"}
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
         </div>

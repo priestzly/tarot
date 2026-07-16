@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { LogIn, ChevronRight, RefreshCw, ArrowRight, Sparkles, Wand2 } from "lucide-react";
+import { LogIn, ChevronRight, RefreshCw, ArrowRight, Sparkles, Wand2, X, Calendar } from "lucide-react";
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from "framer-motion";
 import { createClient } from "@/utils/supabase/client";
 import { clsx, type ClassValue } from "clsx";
@@ -131,6 +131,46 @@ function HomeContent() {
   const [cards, setCards] = useState(EXPLORE_CARDS);
   const supabase = createClient();
 
+  // Kozmik Kredi Yükleme Modali States
+  const [isCreditModalOpen, setIsCreditModalOpen] = useState(false);
+  const [selectedCreditPackage, setSelectedCreditPackage] = useState<any>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvv, setCardCvv] = useState("");
+  const [cardName, setCardName] = useState("");
+
+  const handleBuyCredits = async (amount: number) => {
+    setIsProcessingPayment(true);
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    const currentCredits = profile?.credits ?? 0;
+    const newCredits = currentCredits + amount;
+    
+    const { error } = await supabase
+        .from("profiles")
+        .update({ credits: newCredits })
+        .eq("id", user.id);
+        
+    if (error) {
+        alert("Kredi yüklenirken bir hata oluştu: " + error.message);
+    } else {
+        setProfile((prev: any) => prev ? { ...prev, credits: newCredits } : null);
+        setPaymentSuccess(true);
+        setTimeout(() => {
+            setPaymentSuccess(false);
+            setIsCreditModalOpen(false);
+            setSelectedCreditPackage(null);
+            setCardNumber("");
+            setCardExpiry("");
+            setCardCvv("");
+            setCardName("");
+        }, 2000);
+    }
+    setIsProcessingPayment(false);
+  };
+
   useEffect(() => {
     const fetchUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -138,7 +178,7 @@ function HomeContent() {
       setUser(currentUser ?? null);
 
       if (currentUser) {
-        const { data: profileData } = await supabase.from("profiles").select("full_name").eq("id", currentUser.id).single();
+        const { data: profileData } = await supabase.from("profiles").select("full_name, credits").eq("id", currentUser.id).single();
         if (profileData) setProfile(profileData);
 
         const { data: consultantData } = await supabase.from('consultants').select('id').eq('id', currentUser.id).maybeSingle();
@@ -191,13 +231,25 @@ function HomeContent() {
         </div>
 
         {user ? (
-          <div onClick={() => router.push("/profile")} className="flex items-center gap-3 glass px-3 py-1.5 rounded-full border border-white/5 cursor-pointer hover:bg-white/5 transition-colors">
-            <div className="text-right hidden sm:block">
-              <p className="text-xs font-bold text-white capitalize">{profile?.full_name || "Gezgin"}</p>
-              <p className="text-[9px] text-accent font-bold uppercase tracking-wider">{isConsultant ? "Danışman" : "Profilim"}</p>
+          <div className="flex items-center gap-3">
+            {/* Credit Display */}
+            <div 
+                onClick={() => setIsCreditModalOpen(true)}
+                className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-full cursor-pointer hover:bg-amber-500/20 transition-all active:scale-95 shadow-[0_0_15px_rgba(245,158,11,0.15)]"
+            >
+                <span className="text-xs font-bold text-amber-400">🪙 {profile?.credits ?? 0} Kredi</span>
+                <span className="text-[9px] uppercase tracking-widest font-black text-amber-500 hidden xs:inline">+ YÜKLE</span>
             </div>
-            <div className="w-8 h-8 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-white text-xs font-bold">
-              {(profile?.full_name?.[0] || user.email?.[0] || "U").toUpperCase()}
+
+            {/* Profile Badge */}
+            <div onClick={() => router.push(isConsultant ? "/dashboard" : "/profile")} className="flex items-center gap-3 glass px-3 py-1.5 rounded-full border border-white/5 cursor-pointer hover:bg-white/5 transition-colors">
+              <div className="text-right hidden sm:block">
+                <p className="text-xs font-bold text-white capitalize">{profile?.full_name || "Gezgin"}</p>
+                <p className="text-[9px] text-accent font-bold uppercase tracking-wider">{isConsultant ? "Danışman" : "Profilim"}</p>
+              </div>
+              <div className="w-8 h-8 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-white text-xs font-bold">
+                {(profile?.full_name?.[0] || user.email?.[0] || "U").toUpperCase()}
+              </div>
             </div>
           </div>
         ) : (
@@ -320,6 +372,155 @@ function HomeContent() {
         </div>
 
       </main>
+
+      {/* KOZMİK KREDİ SATIN ALMA MODALİ */}
+      <AnimatePresence>
+        {isCreditModalOpen && (
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="w-full max-w-md bg-[#0e0a1a]/95 border border-purple-500/30 shadow-[0_0_50px_rgba(168,85,247,0.25)] rounded-[2.5rem] overflow-hidden relative p-8 text-center space-y-6"
+            >
+              <button 
+                onClick={() => { setIsCreditModalOpen(false); setSelectedCreditPackage(null); }}
+                className="absolute top-6 right-6 text-zinc-500 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {!selectedCreditPackage ? (
+                <>
+                  <div className="space-y-2">
+                    <span className="px-3 py-1 bg-amber-500/10 text-amber-400 rounded-full text-[9px] font-bold uppercase tracking-[0.25em] border border-amber-500/20 inline-flex items-center gap-1.5">
+                      🪙 KOZMİK CÜZDAN
+                    </span>
+                    <h2 className="text-2xl font-bold font-heading text-white tracking-wide">Kredi Yükle</h2>
+                    <p className="text-xs text-zinc-400">Fal paketlerini satın almak ve danışmanlarla seans başlatmak için Kozmik Kredi yükleyin.</p>
+                  </div>
+
+                  {/* Wallet Info */}
+                  <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 flex justify-between items-center text-left">
+                    <div>
+                      <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">Mevcut Bakiyeniz</p>
+                      <p className="text-xl font-black text-amber-400 mt-0.5">🪙 {profile?.credits ?? 0} Kredi</p>
+                    </div>
+                    <span className="text-xs text-purple-300 font-medium italic">1 Kredi = 0.50 ₺</span>
+                  </div>
+
+                  {/* Packages */}
+                  <div className="space-y-3">
+                    {[
+                      { amount: 100, price: "₺50", title: "🔮 Kozmik Başlangıç" },
+                      { amount: 250, price: "₺100", title: "🌟 Mistik Paket", popular: true },
+                      { amount: 500, price: "₺180", title: "👑 Kraliyet Cüzdanı" }
+                    ].map((pkg) => (
+                      <button
+                        key={pkg.amount}
+                        onClick={() => setSelectedCreditPackage(pkg)}
+                        className="w-full bg-[#120e24] hover:bg-[#1a1435] border border-white/5 hover:border-purple-500/30 p-4 rounded-2xl flex justify-between items-center text-left transition-all active:scale-[0.99] relative group"
+                      >
+                        {pkg.popular && (
+                          <span className="absolute top-0 right-12 -translate-y-1/2 bg-amber-500 text-black text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
+                            En Popüler
+                          </span>
+                        )}
+                        <div>
+                          <p className="text-xs font-bold text-white group-hover:text-purple-300 transition-colors">{pkg.title}</p>
+                          <p className="text-sm font-black text-amber-400 mt-1">🪙 {pkg.amount} Kredi</p>
+                        </div>
+                        <span className="text-xs font-black text-white bg-white/5 px-3 py-1.5 rounded-xl border border-white/10 group-hover:bg-purple-600 transition-all">{pkg.price}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : paymentSuccess ? (
+                <div className="py-8 space-y-4">
+                  <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto text-3xl shadow-lg shadow-emerald-500/20">
+                    ✓
+                  </div>
+                  <h3 className="text-xl font-bold text-white">Yükleme Başarılı!</h3>
+                  <p className="text-xs text-zinc-400">🪙 {selectedCreditPackage.amount} Kredi hesabınıza başarıyla yüklendi. Keyifli fallar dileriz!</p>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-1">
+                    <h2 className="text-xl font-bold text-white font-heading">Güvenli Ödeme</h2>
+                    <p className="text-xs text-zinc-400">Yüklenecek: <strong className="text-amber-400">🪙 {selectedCreditPackage.amount} Kredi ({selectedCreditPackage.price})</strong></p>
+                  </div>
+
+                  {/* Mock Payment Form */}
+                  <div className="space-y-4 text-left">
+                    <div>
+                      <label className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold block mb-1">Kart Sahibi</label>
+                      <input 
+                        type="text" 
+                        placeholder="Kart Üzerindeki İsim"
+                        value={cardName}
+                        onChange={e => setCardName(e.target.value)}
+                        className="w-full bg-[#120e24] border border-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600/50 focus:outline-none focus:border-purple-500/50"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold block mb-1">Kart Numarası</label>
+                      <input 
+                        type="text" 
+                        placeholder="0000 0000 0000 0000"
+                        maxLength={19}
+                        value={cardNumber}
+                        onChange={e => setCardNumber(e.target.value)}
+                        className="w-full bg-[#120e24] border border-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600/50 focus:outline-none focus:border-purple-500/50"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold block mb-1">Son Kullanma</label>
+                        <input 
+                          type="text" 
+                          placeholder="AA/YY"
+                          maxLength={5}
+                          value={cardExpiry}
+                          onChange={e => setCardExpiry(e.target.value)}
+                          className="w-full bg-[#120e24] border border-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600/50 focus:outline-none focus:border-purple-500/50 text-center"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold block mb-1">CVC / CVV</label>
+                        <input 
+                          type="password" 
+                          placeholder="123"
+                          maxLength={3}
+                          value={cardCvv}
+                          onChange={e => setCardCvv(e.target.value)}
+                          className="w-full bg-[#120e24] border border-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600/50 focus:outline-none focus:border-purple-500/50 text-center"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={() => setSelectedCreditPackage(null)}
+                      disabled={isProcessingPayment}
+                      className="flex-1 py-3.5 px-6 rounded-2xl border border-white/10 hover:border-purple-500/20 text-zinc-400 hover:text-white transition-all font-bold text-xs uppercase tracking-widest disabled:opacity-50"
+                    >
+                      Geri Dön
+                    </button>
+                    <button
+                      onClick={() => handleBuyCredits(selectedCreditPackage.amount)}
+                      disabled={isProcessingPayment || !cardName || !cardNumber}
+                      className="flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 hover:brightness-110 active:scale-95 text-black transition-all font-bold text-xs uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {isProcessingPayment ? "⏳ Lütfen Bekleyin..." : "Kredi Yükle"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

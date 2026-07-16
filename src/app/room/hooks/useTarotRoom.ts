@@ -533,7 +533,7 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
                     }
                 },
                 on: (event: string, callback: (...args: any[]) => void) => {
-                    channel.on("broadcast", { event }, ({ payload }) => {
+                    channel.on("broadcast", { event }, ({ payload }: any) => {
                         let args = payload?.args || [];
                         if (args.length > 0 && args[0] === roomId) {
                             args = args.slice(1);
@@ -546,7 +546,7 @@ export function useTarotRoom(roomId: string, searchParams: URLSearchParams) {
                 }
             };
             socketRef.current = fakeSocket;
-            channel.subscribe(async (status) => {
+            channel.subscribe(async (status: string) => {
                 if (status === 'SUBSCRIBED') {
                     fakeSocket.connected = true;
                     if (fakeSocket.id) {

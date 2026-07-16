@@ -80,7 +80,7 @@ export default function ProfilePage() {
 
             if (sessionData) {
                 // Sadece normal canlı sıra bekleme (istek) olanları gizle, offline randevu taleplerini ve diğer durumları göster
-                const filtered = sessionData.filter(s => !(s.status === 'pending' && !s.client_info?.is_offline_request));
+                const filtered = sessionData.filter((s: any) => !(s.status === 'pending' && !s.client_info?.is_offline_request));
                 setHistory(filtered.slice(0, 10));
             }
 

@@ -143,7 +143,7 @@ function TarotConsultantsContent() {
 
         if (data) {
             const now = new Date();
-            const validSessions = data.filter(s => {
+            const validSessions = data.filter((s: any) => {
                 if (s.status === 'pending') {
                     const sessionDate = new Date(s.created_at);
                     const diffMinutes = (now.getTime() - sessionDate.getTime()) / (1000 * 60);
@@ -169,11 +169,12 @@ function TarotConsultantsContent() {
 
     useEffect(() => {
         if (!supabase) return;
-
+        let isMounted = true;
         let sessionStatusChannel: any = null;
 
         const initUser = async () => {
             const { data: { session } } = await supabase.auth.getSession();
+            if (!isMounted) return;
             const currentUser = session?.user;
             setUser(currentUser ?? null);
 
@@ -182,12 +183,14 @@ function TarotConsultantsContent() {
                 fetchActiveSessions(currentUser.id);
                 checkIsConsultant(currentUser.id);
 
-                if (!sessionStatusChannel) {
-                    sessionStatusChannel = supabase.channel(`user_sessions_${currentUser.id}`)
-                        .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions', filter: `client_id=eq.${currentUser.id}` }, () => fetchActiveSessions(currentUser.id))
-                        .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions', filter: `consultant_id=eq.${currentUser.id}` }, () => fetchActiveSessions(currentUser.id))
-                        .subscribe();
-                }
+                sessionStatusChannel = supabase.channel(`user_sessions_${currentUser.id}`)
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions', filter: `client_id=eq.${currentUser.id}` }, () => {
+                        if (isMounted) fetchActiveSessions(currentUser.id);
+                    })
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions', filter: `consultant_id=eq.${currentUser.id}` }, () => {
+                        if (isMounted) fetchActiveSessions(currentUser.id);
+                    })
+                    .subscribe();
             }
         };
 
@@ -195,10 +198,13 @@ function TarotConsultantsContent() {
         fetchConsultants();
 
         const consultantChannel = supabase.channel('consultant_status_global')
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'consultants' }, () => fetchConsultants())
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'consultants' }, () => {
+                if (isMounted) fetchConsultants();
+            })
             .subscribe();
 
-        const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+            if (!isMounted) return;
             const currentUser = session?.user;
             setUser(currentUser ?? null);
             if (currentUser) {
@@ -214,6 +220,7 @@ function TarotConsultantsContent() {
         });
 
         return () => {
+            isMounted = false;
             authSub.unsubscribe();
             supabase.removeChannel(consultantChannel);
             if (sessionStatusChannel) supabase.removeChannel(sessionStatusChannel);
@@ -245,7 +252,7 @@ function TarotConsultantsContent() {
                     setIsWaitingForConsultant(false); setPendingSessionId(null); setStep("welcome"); setRejectedModal(true);
                 }
             })
-            .subscribe((status) => {
+            .subscribe((status: string) => {
                 if (status === 'SUBSCRIBED') {
                     checkInterval = setInterval(async () => {
                         const { data } = await supabase.from('sessions').select('*').eq('id', pendingSessionId).single();

@@ -24,6 +24,7 @@ export default function ConsultantDashboard() {
     const supabase = createClient();
 
     useEffect(() => {
+        let isMounted = true;
         let activeChannel: any = null;
         let presenceChannel: any = null;
 
@@ -34,8 +35,8 @@ export default function ConsultantDashboard() {
                 .eq("consultant_id", userId)
                 .order("created_at", { ascending: false });
 
-            if (data) setSessions(data);
-            setLoading(false);
+            if (isMounted && data) setSessions(data);
+            if (isMounted) setLoading(false);
         };
 
         const fetchConsultantData = async (userId: string) => {
@@ -45,7 +46,7 @@ export default function ConsultantDashboard() {
                 .eq("id", userId)
                 .maybeSingle();
 
-            if (data) {
+            if (isMounted && data) {
                 setConsultantData(data);
                 setIsOnline(data.is_online);
             }
@@ -53,6 +54,7 @@ export default function ConsultantDashboard() {
 
         const init = async () => {
             const { data: { user } } = await supabase.auth.getUser();
+            if (!isMounted) return;
             if (!user) {
                 router.push("/login");
                 return;
@@ -63,39 +65,39 @@ export default function ConsultantDashboard() {
             fetchConsultantData(user.id);
 
             // Session updates realtime
-            if (!activeChannel) {
-                activeChannel = supabase
-                    .channel(`dashboard_sessions_${user.id}`)
-                    .on('postgres_changes', {
-                        event: '*',
-                        schema: 'public',
-                        table: 'sessions',
-                        filter: `consultant_id=eq.${user.id}`
-                    }, () => fetchSessions(user.id))
-                    .subscribe();
-            }
+            activeChannel = supabase
+                .channel(`dashboard_sessions_${user.id}`)
+                .on('postgres_changes', {
+                    event: '*',
+                    schema: 'public',
+                    table: 'sessions',
+                    filter: `consultant_id=eq.${user.id}`
+                }, () => {
+                    if (isMounted) fetchSessions(user.id);
+                })
+                .subscribe();
 
             // Presence tracking
-            if (!presenceChannel) {
-                presenceChannel = supabase.channel('online_users_dashboard');
-                presenceChannel
-                    .on('presence', { event: 'sync' }, () => {
-                        const state = presenceChannel.presenceState();
-                        const onlineIds = new Set<string>();
-                        Object.values(state).forEach((presences: any) => {
-                            (presences as any[]).forEach((p: any) => {
-                                if (p.user_id) onlineIds.add(p.user_id);
-                            });
+            presenceChannel = supabase.channel('online_users_dashboard');
+            presenceChannel
+                .on('presence', { event: 'sync' }, () => {
+                    if (!isMounted) return;
+                    const state = presenceChannel.presenceState();
+                    const onlineIds = new Set<string>();
+                    Object.values(state).forEach((presences: any) => {
+                        (presences as any[]).forEach((p: any) => {
+                            if (p.user_id) onlineIds.add(p.user_id);
                         });
-                        setOnlineClients(onlineIds);
-                    })
-                    .subscribe();
-            }
+                    });
+                    setOnlineClients(onlineIds);
+                })
+                .subscribe();
         };
 
         init();
 
         return () => {
+            isMounted = false;
             if (activeChannel) supabase.removeChannel(activeChannel);
             if (presenceChannel) supabase.removeChannel(presenceChannel);
         };

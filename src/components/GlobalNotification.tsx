@@ -11,126 +11,48 @@ export default function GlobalNotification() {
     const [incomingRequest, setIncomingRequest] = useState<any>(null);
     const [user, setUser] = useState<any>(null);
     const [onlineClients, setOnlineClients] = useState<Set<string>>(new Set());
+    const [isConsultant, setIsConsultant] = useState(false);
 
     const router = useRouter();
     const supabase = createClient();
 
+    // Hook 1: Handle Auth State and Consultant Status Check
     useEffect(() => {
-        let activeChannel: any = null;
-        let presenceChannel: any = null;
+        let isMounted = true;
 
-        const setupSubscriptions = async (currentUser: any) => {
-            if (!currentUser) return;
-
-            // Cleanup potential old ones
-            if (activeChannel) supabase.removeChannel(activeChannel);
-            if (presenceChannel) supabase.removeChannel(presenceChannel);
-
-            // 1. Presence tracking
-            presenceChannel = supabase.channel("online_users", { config: { presence: { key: currentUser.id } } });
-            presenceChannel
-                .on("presence", { event: "sync" }, () => {
-                    const state = presenceChannel.presenceState();
-                    const onlineIds = new Set<string>();
-                    Object.values(state).forEach((presences: any) => {
-                        (presences as any[]).forEach((p: any) => {
-                            if (p.user_id) onlineIds.add(p.user_id);
-                        });
-                    });
-                    setOnlineClients(onlineIds);
-                })
-                .subscribe(async (status: string) => {
-                    if (status === "SUBSCRIBED") {
-                        await presenceChannel.track({
-                            user_id: currentUser.id,
-                            online_at: new Date().toISOString(),
-                        });
-                    }
-                });
-
-            // 2. Consultant check
-            const { data: consultant } = await supabase
-                .from("consultants")
-                .select("id")
-                .eq("id", currentUser.id)
-                .maybeSingle();
-
-            if (!consultant) return;
-
-            // 3. Realtime subscription for incoming requests
-            activeChannel = supabase
-                .channel(`consultant_notifications_${currentUser.id}`)
-                .on(
-                    "postgres_changes",
-                    {
-                        event: "INSERT",
-                        schema: "public",
-                        table: "sessions",
-                        filter: `consultant_id=eq.${currentUser.id}`,
-                    },
-                    (payload) => {
-                        console.log("New mobile notification received:", payload.new);
-                        showBrowserNotification(payload.new);
-                        setIncomingRequest(payload.new);
-                    }
-                )
-                .subscribe((status) => {
-                    if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-                        // Attempt reconnect on error
-                        setTimeout(() => setupSubscriptions(currentUser), 5000);
-                    }
-                });
-
-            // 4. Fallback: Check for pending sessions that might have been missed while tab was suspended
-            const { data: missedSessions } = await supabase
-                .from("sessions")
-                .select("*")
-                .eq("consultant_id", currentUser.id)
-                .eq("status", "pending")
-                .order("created_at", { ascending: false })
-                .limit(1);
-
-            if (missedSessions && missedSessions.length > 0) {
-                const session = missedSessions[0];
-                const createdAt = new Date(session.created_at).getTime();
-                const now = new Date().getTime();
-                // If it's newer than 5 minutes, show it
-                if (now - createdAt < 300000) {
-                    setIncomingRequest(session);
-                }
-            }
-        };
-
-        const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            const currentUser = session?.user;
+        const handleAuthChange = async (currentUser: any) => {
+            if (!isMounted) return;
             setUser(currentUser || null);
 
             if (currentUser) {
-                setupSubscriptions(currentUser);
+                const { data: consultant } = await supabase
+                    .from("consultants")
+                    .select("id")
+                    .eq("id", currentUser.id)
+                    .maybeSingle();
+                if (isMounted) setIsConsultant(!!consultant);
             } else {
-                if (activeChannel) supabase.removeChannel(activeChannel);
-                if (presenceChannel) supabase.removeChannel(presenceChannel);
-                activeChannel = null;
-                presenceChannel = null;
+                if (isMounted) setIsConsultant(false);
             }
+        };
+
+        const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(async (_event: any, session: any) => {
+            handleAuthChange(session?.user);
         });
 
         // Handle page visibility change (mobile browsers sleep tabs)
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
-                supabase.auth.getUser().then(({ data: { user } }) => {
-                    if (user) setupSubscriptions(user);
+                supabase.auth.getUser().then(({ data }: any) => {
+                    handleAuthChange(data?.user);
                 });
             }
         };
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
         // Initial check
-        supabase.auth.getUser().then(({ data: { user } }) => {
-            if (user) {
-                setUser(user);
-                setupSubscriptions(user);
-            }
+        supabase.auth.getUser().then(({ data }: any) => {
+            handleAuthChange(data?.user);
         });
 
         // Notification permission - wrap in extreme safety
@@ -157,12 +79,108 @@ export default function GlobalNotification() {
         }
 
         return () => {
+            isMounted = false;
             if (authSub && authSub.unsubscribe) authSub.unsubscribe();
             document.removeEventListener('visibilitychange', handleVisibilityChange);
-            if (activeChannel) supabase.removeChannel(activeChannel);
-            if (presenceChannel) supabase.removeChannel(presenceChannel);
         };
     }, [supabase]);
+
+    // Hook 2: Handle Realtime Subscriptions with Mounting Checks
+    useEffect(() => {
+        if (!user) return;
+        let isMounted = true;
+        let activeChannel: any = null;
+
+        // 1. Presence tracking
+        const presenceChannel = supabase.channel("online_users", { config: { presence: { key: user.id } } });
+        presenceChannel
+            .on("presence", { event: "sync" }, () => {
+                if (!isMounted) return;
+                const state = presenceChannel.presenceState();
+                const onlineIds = new Set<string>();
+                Object.values(state).forEach((presences: any) => {
+                    (presences as any[]).forEach((p: any) => {
+                        if (p.user_id) onlineIds.add(p.user_id);
+                    });
+                });
+                setOnlineClients(onlineIds);
+            })
+            .subscribe(async (status: string) => {
+                if (status === "SUBSCRIBED" && isMounted) {
+                    await presenceChannel.track({
+                        user_id: user.id,
+                        online_at: new Date().toISOString(),
+                    });
+                }
+            });
+
+        // 2. Realtime subscription for incoming requests (Only for consultants)
+        const subscribeToNotifications = () => {
+            if (!isMounted) return;
+            activeChannel = supabase
+                .channel(`consultant_notifications_${user.id}`)
+                .on(
+                    "postgres_changes",
+                    {
+                        event: "INSERT",
+                        schema: "public",
+                        table: "sessions",
+                        filter: `consultant_id=eq.${user.id}`,
+                    },
+                    (payload: any) => {
+                        if (!isMounted) return;
+                        console.log("New mobile notification received:", payload.new);
+                        showBrowserNotification(payload.new);
+                        setIncomingRequest(payload.new);
+                    }
+                )
+                .subscribe((status: string) => {
+                    if ((status === 'CLOSED' || status === 'CHANNEL_ERROR') && isMounted) {
+                        setTimeout(() => {
+                            if (isMounted) {
+                                if (activeChannel) supabase.removeChannel(activeChannel);
+                                subscribeToNotifications();
+                            }
+                        }, 5000);
+                    }
+                });
+        };
+
+        if (isConsultant) {
+            subscribeToNotifications();
+        }
+
+        // 3. Fallback: Check for pending sessions that might have been missed while tab was suspended
+        const checkMissedSessions = async () => {
+            const { data: missedSessions } = await supabase
+                .from("sessions")
+                .select("*")
+                .eq("consultant_id", user.id)
+                .eq("status", "pending")
+                .order("created_at", { ascending: false })
+                .limit(1);
+
+            if (isMounted && missedSessions && missedSessions.length > 0) {
+                const session = missedSessions[0];
+                const createdAt = new Date(session.created_at).getTime();
+                const now = new Date().getTime();
+                // If it's newer than 5 minutes, show it
+                if (now - createdAt < 300000) {
+                    setIncomingRequest(session);
+                }
+            }
+        };
+
+        if (isConsultant) {
+            checkMissedSessions();
+        }
+
+        return () => {
+            isMounted = false;
+            supabase.removeChannel(presenceChannel);
+            if (activeChannel) supabase.removeChannel(activeChannel);
+        };
+    }, [user, isConsultant, supabase]);
 
     const showBrowserNotification = (session: any) => {
         const title = "Yeni Görüşme Talebi";

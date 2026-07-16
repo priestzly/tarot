@@ -443,254 +443,256 @@ function TarotConsultantsContent() {
     };
 
     const renderWelcome = () => (
-        <motion.div key="welcome" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="space-y-12">
+        <motion.div key="welcome" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="w-full">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+                
+                {/* Left Column: Main Header & Options */}
+                <div className="lg:col-span-8 space-y-10 order-1 lg:order-1">
+                    {/* Header */}
+                    <div className="relative pb-6 border-b border-white/5">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-fuchsia-500/5 blur-[100px] rounded-full pointer-events-none" />
+                        <button onClick={() => router.push('/')} className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-zinc-500 hover:text-white transition-colors mb-6">
+                            <ArrowLeft className="w-4 h-4" /> Ana Sayfa
+                        </button>
+                        <h1 className="text-4xl md:text-5xl font-heading font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-purple-200 to-indigo-300">
+                            Tarot Kozmosu
+                        </h1>
+                        <p className="text-sm text-zinc-400 mt-3 font-medium max-w-xl leading-relaxed">
+                            Mistik arayüz aracılığıyla Yapay Zeka'dan günlük yorum al veya uzman danışmanlarla seansa bağlan.
+                        </p>
+                    </div>
 
-            {/* Header & Back Action */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-white/5 pb-8 relative">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-fuchsia-500/10 blur-[100px] rounded-full pointer-events-none" />
-
-                <div className="flex-1">
-                    <button onClick={() => router.push('/')} className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-zinc-500 hover:text-white transition-colors mb-6">
-                        <ArrowLeft className="w-4 h-4" /> Ana Sayfa
-                    </button>
-                    <h1 className="text-4xl md:text-5xl font-heading font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-purple-200 to-indigo-300">
-                        Tarot Kozmosu
-                    </h1>
-                    <p className="text-sm text-zinc-400 mt-2 font-medium max-w-sm leading-relaxed">
-                        Mistik arayüz aracılığıyla Yapay Zeka'dan günlük yorum al veya uzman danışmanlarla yüz yüze seansa bağlan.
-                    </p>
-                </div>
-
-                {/* Günlük Kart Çevirme */}
-                {renderDailyFlip()}
-            </div>
-
-                {/* Consultant Incoming Requests */}
-                {isConsultant && clientSessions.filter(s => s.status === 'pending' && s.consultant_id === user?.id).map(session => (
-                    <motion.div
-                        key={session.id}
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="w-full md:w-auto bg-purple-500/10 border border-purple-500/30 rounded-2xl p-5 flex items-center gap-5 shadow-[0_0_30px_rgba(168,85,247,0.15)] animate-pulse"
-                    >
-                        <div className="shrink-0 w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center border border-purple-500/40 relative">
-                            <Sparkles className="w-5 h-5 text-purple-300" />
-                            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-bg" />
-                        </div>
-                        <div className="flex-1">
-                            <p className="text-[10px] text-purple-400 font-bold uppercase tracking-[0.2em] mb-0.5">Yeni Görüşme Talebi</p>
-                            <p className="text-sm text-white font-bold">{session.client_info?.name || "Bir Müşteri"}</p>
-                            <p className="text-[10px] text-zinc-500 mt-0.5">{session.client_info?.focus || "Genel Bakış"} • {session.client_info?.cards || 3} Kart</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={async () => {
-                                    const { error } = await supabase.from('sessions').update({ status: 'cancelled' }).eq('id', session.id);
-                                    if (error) {
-                                        alert("İptal edilirken bir hata oluştu: " + error.message);
-                                        return;
-                                    }
-                                    if (user) fetchActiveSessions(user.id);
-                                }}
-                                className="px-4 py-2 text-xs font-bold text-zinc-400 hover:text-white transition-colors"
-                            >
-                                Reddet
-                            </button>
-                            <button
-                                onClick={async (e) => {
-                                    const btn = e.currentTarget;
-                                    btn.disabled = true;
-                                    btn.innerHTML = '<span class="animate-spin mr-2">⏳</span>...';
-
-                                    try {
-                                        const { error } = await supabase
-                                            .from('sessions')
-                                            .update({ status: 'active' })
-                                            .eq('id', session.id);
-
+                    {/* Consultant Incoming Requests */}
+                    {isConsultant && clientSessions.filter(s => s.status === 'pending' && s.consultant_id === user?.id).map(session => (
+                        <motion.div
+                            key={session.id}
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="w-full bg-purple-500/10 border border-purple-500/30 rounded-[2rem] p-5 flex items-center gap-5 shadow-[0_0_30px_rgba(168,85,247,0.15)] animate-pulse"
+                        >
+                            <div className="shrink-0 w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center border border-purple-500/40 relative">
+                                <Sparkles className="w-5 h-5 text-purple-300" />
+                                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-bg" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-[10px] text-purple-400 font-bold uppercase tracking-[0.2em] mb-0.5">Yeni Görüşme Talebi</p>
+                                <p className="text-sm text-white font-bold">{session.client_info?.name || "Bir Müşteri"}</p>
+                                <p className="text-[10px] text-zinc-500 mt-0.5">{session.client_info?.focus || "Genel Bakış"} • {session.client_info?.cards || 3} Kart</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={async () => {
+                                        const { error } = await supabase.from('sessions').update({ status: 'cancelled' }).eq('id', session.id);
                                         if (error) {
-                                            alert("Kabul edilirken hata oluştu: " + error.message);
-                                            btn.disabled = false;
-                                            btn.textContent = "Kabul Et";
+                                            alert("İptal edilirken bir hata oluştu: " + error.message);
                                             return;
                                         }
-
-                                        // UI'ı hemen güncelle
-                                        if (user) await fetchActiveSessions(user.id);
-
-                                        // Odaya yönlendir
-                                        router.push(`/room?id=${session.room_id}&role=consultant`);
-                                    } catch (err) {
-                                        console.error(err);
-                                        alert("Bir ağ hatası oluştu. Lütfen tekrar deneyin.");
-                                        btn.disabled = false;
-                                        btn.textContent = "Kabul Et";
-                                    }
-                                }}
-                                className="px-6 py-2.5 bg-purple-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-purple-500/30 hover:bg-purple-400 active:scale-95 disabled:opacity-50 disabled:scale-100 transition-all flex items-center justify-center"
-                            >
-                                Kabul Et
-                            </button>
-                        </div>
-                    </motion.div>
-                ))}
-
-                {/* Active Sessions (Client or Consultant) */}
-                {clientSessions.filter(s => s.status === 'active').length > 0 && (
-                    <div className="w-full md:w-auto bg-green-500/10 border border-green-500/20 rounded-2xl p-4 flex items-center gap-4">
-                        <div className="shrink-0 w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center border border-green-500/30">
-                            <Clock className="w-4 h-4 text-green-400" />
-                        </div>
-                        <div>
-                            <p className="text-xs text-green-400 font-bold uppercase tracking-wider">Devam Ediyor</p>
-                            <p className="text-sm text-white font-medium">
-                                {clientSessions.find(s => s.status === 'active')?.consultant?.display_name || "Mevcut Oturum"}
-                            </p>
-                        </div>
-                        <button
-                            onClick={() => {
-                                const s = clientSessions.find(s => s.status === 'active');
-                                router.push(`/room?id=${s.room_id}&role=${isConsultant ? 'consultant' : 'client'}`);
-                            }}
-                            className="ml-auto px-4 py-2 bg-green-500 text-black text-xs font-bold rounded-xl whitespace-nowrap"
-                        >
-                            Odaya Dön
-                        </button>
-                    </div>
-                )}
-
-            {/* AI FEATURE CARD */}
-            <section className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 via-fuchsia-600/10 to-indigo-600/10 rounded-[2.5rem] blur-2xl opacity-40 pointer-events-none" />
-                <div className="relative p-0.5 rounded-[2.5rem] bg-gradient-to-r from-purple-500/20 via-fuchsia-500/20 to-indigo-500/20 overflow-hidden group shadow-2xl">
-                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 mix-blend-overlay pointer-events-none" />
-
-                    <div className="relative bg-[#0d091a]/95 backdrop-blur-3xl rounded-[2.4rem] p-8 md:p-10 flex flex-col md:flex-row items-center gap-8 justify-between border border-white/5">
-                        <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left">
-                            <span className="px-3 py-1 bg-fuchsia-500/10 text-fuchsia-300 rounded-full text-[9px] font-bold uppercase tracking-[0.25em] mb-4 border border-fuchsia-500/20 flex items-center gap-1.5 w-fit">
-                                <span className="w-2 h-2 rounded-full bg-fuchsia-400 animate-pulse" />
-                                Yapay Zeka (7/24)
-                            </span>
-                            <h2 className="text-3xl font-heading text-white font-extrabold mb-3 flex items-center gap-3 justify-center md:justify-start">
-                                Mistik AI Danışman <Sparkles className="w-6 h-6 text-fuchsia-400" />
-                            </h2>
-                            <p className="text-sm text-zinc-400 max-w-md mb-6 leading-relaxed">
-                                Gelişmiş AI vizyonuyla niyetini oku. Ücretsiz olarak üç kartını seç, anında sana özel kapsamlı ve spiritüel bir yorum üretilsin. Beklemek yok.
-                            </p>
-
-                            <button
-                                onClick={() => user ? router.push("/ai-tarot") : router.push("/login")}
-                                className="px-8 py-4 w-full md:w-auto bg-gradient-to-r from-fuchsia-600 to-indigo-600 text-white font-bold text-xs uppercase tracking-widest rounded-2xl hover:shadow-[0_0_30px_rgba(217,70,239,0.3)] hover:brightness-110 transition-all active:scale-95 flex items-center justify-center gap-2 group/btn"
-                            >
-                                {user ? "Hemen Başla" : "Üye Ol & Başla"} <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                            </button>
-                        </div>
-                        
-                        <div className="shrink-0 relative w-36 h-36 md:w-48 md:h-48 group-hover:scale-105 transition-transform duration-700">
-                            <div className="absolute inset-0 rounded-full bg-fuchsia-500/10 shadow-[0_0_60px_rgba(217,70,239,0.25)] animate-pulse-slow" />
-                            <div className="absolute inset-2 border-2 border-fuchsia-500/20 rounded-full border-dashed animate-spin" style={{ animationDuration: '12s' }} />
-                            <motion.div 
-                                animate={{ y: [0, -6, 0] }}
-                                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                                className="absolute inset-4 bg-gradient-to-br from-[#1c0c3a] to-[#0c051a] border border-purple-500/30 rounded-full flex items-center justify-center text-6xl shadow-inner shadow-purple-500/30"
-                            >
-                                🤖
-                            </motion.div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* LIVE CONSULTANTS SECTION */}
-            <section className="pt-4">
-                <div className="flex items-center justify-between mb-8">
-                    <div>
-                        <h2 className="text-2xl font-bold font-heading text-white flex items-center gap-3">
-                            Canlı Danışmanlar
-                        </h2>
-                        <p className="text-xs text-zinc-500 mt-1">Gerçek psişiklerle anında video görüşmesi başlat.</p>
-                    </div>
-                    <div className="hidden sm:flex items-center gap-3 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-                        <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-emerald-500" /> Çevrimiçi</span>
-                        <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-zinc-600" /> Uyuyor</span>
-                    </div>
-                </div>
-
-                {isLoadingProfiles ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {[1, 2, 3].map(i => (
-                            <div key={i} className="h-32 bg-white/5 rounded-[2rem] animate-pulse border border-white/5" />
-                        ))}
-                    </div>
-                ) : consultants.length === 0 ? (
-                    <div className="w-full p-12 text-center rounded-[2rem] border border-dashed border-white/10 bg-white/5">
-                        <UserIcon className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
-                        <h3 className="text-lg font-bold text-white">Sistemde Danışman Yok</h3>
-                        <p className="text-sm text-zinc-500 mt-1">Şu anda platformda kayıtlı hiçbir danışman bulunmuyor.</p>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {consultants.filter(c => c.id !== user?.id).map(c => (
-                            <div key={c.id} className="group relative">
-                                <div className={`absolute inset-0 rounded-[2.5rem] opacity-0 group-hover:opacity-100 transition-all duration-500 blur-xl bg-gradient-to-r ${c.is_online ? "from-purple-500/10 to-indigo-500/10" : "from-white/2 to-white/2"}`} />
-                                <button
-                                    onClick={() => {
-                                        if (!user) { alert("Lütfen giriş yapınız."); router.push('/login'); return; }
-                                        setSelectedConsultant(c);
-                                        if (!c.is_online) setOfflineWarningModal(true);
-                                        else setStep("client_step1_name");
+                                        if (user) fetchActiveSessions(user.id);
                                     }}
-                                    className="w-full relative bg-gradient-to-br from-[#120e26]/80 to-[#0c0817]/95 border border-white/5 hover:border-purple-500/35 p-6 rounded-[2.5rem] text-left flex flex-col gap-5 shadow-[0_15px_35px_rgba(0,0,0,0.4)] transition-all duration-300 hover:-translate-y-1.5 overflow-hidden"
+                                    className="px-4 py-2 text-xs font-bold text-zinc-400 hover:text-white transition-colors"
                                 >
-                                    <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/2 via-transparent to-transparent pointer-events-none" />
-                                    
-                                    <div className="flex justify-between items-start w-full relative z-10">
-                                        <div className="w-16 h-16 rounded-full border border-purple-500/20 bg-[#070510] flex items-center justify-center shrink-0 relative overflow-hidden shadow-inner group-hover:border-purple-500/40 transition-colors">
-                                            {c.profiles?.avatar_url ? (
-                                                <img src={c.profiles.avatar_url} alt={c.display_name} className="w-full h-full object-cover" />
-                                            ) : (
-                                                <div className="w-full h-full bg-gradient-to-tr from-purple-600/30 to-indigo-600/30 flex items-center justify-center text-xl font-heading font-extrabold text-purple-300">
-                                                    {c.display_name?.charAt(0) || "D"}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="flex flex-col items-end gap-2">
-                                            <span className={cn("px-2.5 py-1 text-[8.5px] font-bold uppercase tracking-widest rounded-full border flex items-center gap-1.5 transition-colors", 
-                                                c.is_online ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-zinc-800/40 text-zinc-400 border-zinc-700/50")}>
-                                                <span className={cn("w-1.5 h-1.5 rounded-full", c.is_online ? "bg-emerald-400 animate-pulse" : "bg-zinc-500")} />
-                                                {c.is_online ? "Çevrimiçi" : "Çevrimdışı"}
-                                            </span>
-                                            {c.rating && (
-                                                <span className="flex items-center gap-1 text-[9.5px] font-bold text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
-                                                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> {c.rating}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
- 
-                                    <div className="relative z-10">
-                                        <h3 className="text-lg font-heading font-bold text-white mb-1 truncate group-hover:text-purple-300 transition-colors">
-                                            {c.display_name}
-                                        </h3>
-                                        <p className="text-[10.5px] text-zinc-400 font-medium tracking-wide truncate">
-                                            {c.specialties?.join(" • ") || "Tarot, Astroloji"}
-                                        </p>
-                                    </div>
- 
-                                    <div className="mt-1 w-full pt-4 border-t border-white/5 flex items-center justify-between relative z-10">
-                                        <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest group-hover:text-purple-300 transition-colors">
-                                            {c.is_online ? "Hemen Bağlan" : "Randevu Al"}
-                                        </span>
-                                        <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 text-white flex items-center justify-center group-hover:bg-purple-600 group-hover:border-purple-500 transition-all duration-300 group-hover:translate-x-0.5">
-                                            <ArrowRight className="w-4 h-4" />
-                                        </div>
-                                    </div>
+                                    Reddet
+                                </button>
+                                <button
+                                    onClick={async (e) => {
+                                        const btn = e.currentTarget;
+                                        btn.disabled = true;
+                                        btn.innerHTML = '<span class="animate-spin mr-2">⏳</span>...';
+
+                                        try {
+                                            const { error } = await supabase
+                                                .from('sessions')
+                                                .update({ status: 'active' })
+                                                .eq('id', session.id);
+
+                                            if (error) {
+                                                alert("Kabul edilirken hata oluştu: " + error.message);
+                                                btn.disabled = false;
+                                                btn.textContent = "Kabul Et";
+                                                return;
+                                            }
+
+                                            if (user) await fetchActiveSessions(user.id);
+                                            router.push(`/room?id=${session.room_id}&role=consultant`);
+                                        } catch (err) {
+                                            console.error(err);
+                                            alert("Bir ağ hatası oluştu. Lütfen tekrar deneyin.");
+                                            btn.disabled = false;
+                                            btn.textContent = "Kabul Et";
+                                        }
+                                    }}
+                                    className="px-6 py-2.5 bg-purple-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-purple-500/30 hover:bg-purple-400 active:scale-95 disabled:opacity-50 disabled:scale-100 transition-all flex items-center justify-center"
+                                >
+                                    Kabul Et
                                 </button>
                             </div>
-                        ))}
-                    </div>
-                )}
-            </section>
+                        </motion.div>
+                    ))}
+
+                    {/* Active Sessions */}
+                    {clientSessions.filter(s => s.status === 'active').length > 0 && (
+                        <div className="w-full bg-green-500/10 border border-green-500/20 rounded-[2rem] p-4 flex items-center gap-4">
+                            <div className="shrink-0 w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center border border-green-500/30">
+                                <Clock className="w-4 h-4 text-green-400" />
+                            </div>
+                            <div>
+                                <p className="text-xs text-green-400 font-bold uppercase tracking-wider">Devam Ediyor</p>
+                                <p className="text-sm text-white font-medium">
+                                    {clientSessions.find(s => s.status === 'active')?.consultant?.display_name || "Mevcut Oturum"}
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    const s = clientSessions.find(s => s.status === 'active');
+                                    router.push(`/room?id=${s.room_id}&role=${isConsultant ? 'consultant' : 'client'}`);
+                                }}
+                                className="ml-auto px-4 py-2 bg-green-500 text-black text-xs font-bold rounded-xl whitespace-nowrap"
+                            >
+                                Odaya Dön
+                            </button>
+                        </div>
+                    )}
+
+                    {/* AI FEATURE CARD */}
+                    <section className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 via-fuchsia-600/10 to-indigo-600/10 rounded-[2.5rem] blur-2xl opacity-40 pointer-events-none" />
+                        <div className="relative p-0.5 rounded-[2.5rem] bg-gradient-to-r from-purple-500/20 via-fuchsia-500/20 to-indigo-500/20 overflow-hidden group shadow-2xl">
+                            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 mix-blend-overlay pointer-events-none" />
+
+                            <div className="relative bg-[#0d091a]/95 backdrop-blur-3xl rounded-[2.4rem] p-8 md:p-10 flex flex-col md:flex-row items-center gap-8 justify-between border border-white/5">
+                                <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left">
+                                    <span className="px-3 py-1 bg-fuchsia-500/10 text-fuchsia-300 rounded-full text-[9px] font-bold uppercase tracking-[0.25em] mb-4 border border-fuchsia-500/20 flex items-center gap-1.5 w-fit">
+                                        <span className="w-2 h-2 rounded-full bg-fuchsia-400 animate-pulse" />
+                                        Yapay Zeka (7/24)
+                                    </span>
+                                    <h2 className="text-3xl font-heading text-white font-extrabold mb-3 flex items-center gap-3 justify-center md:justify-start">
+                                        Mistik AI Danışman <Sparkles className="w-6 h-6 text-fuchsia-400" />
+                                    </h2>
+                                    <p className="text-sm text-zinc-400 max-w-md mb-6 leading-relaxed">
+                                        Gelişmiş AI vizyonuyla niyetini oku. Ücretsiz olarak üç kartını seç, anında sana özel kapsamlı ve spiritüel bir yorum üretilsin. Beklemek yok.
+                                    </p>
+
+                                    <button
+                                        onClick={() => user ? router.push("/ai-tarot") : router.push("/login")}
+                                        className="px-8 py-4 w-full md:w-auto bg-gradient-to-r from-fuchsia-600 to-indigo-600 text-white font-bold text-xs uppercase tracking-widest rounded-2xl hover:shadow-[0_0_30px_rgba(217,70,239,0.3)] hover:brightness-110 transition-all active:scale-95 flex items-center justify-center gap-2 group/btn"
+                                    >
+                                        {user ? "Hemen Başla" : "Üye Ol & Başla"} <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                                    </button>
+                                </div>
+                                
+                                <div className="shrink-0 relative w-36 h-36 md:w-48 md:h-48 group-hover:scale-105 transition-transform duration-700">
+                                    <div className="absolute inset-0 rounded-full bg-fuchsia-500/10 shadow-[0_0_60px_rgba(217,70,239,0.25)] animate-pulse-slow" />
+                                    <div className="absolute inset-2 border-2 border-fuchsia-500/20 rounded-full border-dashed animate-spin" style={{ animationDuration: '12s' }} />
+                                    <motion.div 
+                                        animate={{ y: [0, -6, 0] }}
+                                        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                                        className="absolute inset-4 bg-gradient-to-br from-[#1c0c3a] to-[#0c051a] border border-purple-500/30 rounded-full flex items-center justify-center text-6xl shadow-inner shadow-purple-500/30"
+                                    >
+                                        🤖
+                                    </motion.div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* LIVE CONSULTANTS SECTION */}
+                    <section className="pt-4">
+                        <div className="flex items-center justify-between mb-8">
+                            <div>
+                                <h2 className="text-2xl font-bold font-heading text-white flex items-center gap-3">
+                                    Canlı Danışmanlar
+                                </h2>
+                                <p className="text-xs text-zinc-500 mt-1">Gerçek yorumcularla anında seans başlat.</p>
+                            </div>
+                            <div className="hidden sm:flex items-center gap-3 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                                <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-emerald-500" /> Çevrimiçi</span>
+                                <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-zinc-600" /> Çevrimdışı</span>
+                            </div>
+                        </div>
+
+                        {isLoadingProfiles ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                {[1, 2].map(i => (
+                                    <div key={i} className="h-32 bg-white/5 rounded-[2.5rem] animate-pulse border border-white/5" />
+                                ))}
+                            </div>
+                        ) : consultants.length === 0 ? (
+                            <div className="w-full p-12 text-center rounded-[2.5rem] border border-dashed border-white/10 bg-white/5">
+                                <UserIcon className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
+                                <h3 className="text-lg font-bold text-white">Sistemde Danışman Yok</h3>
+                                <p className="text-sm text-zinc-500 mt-1">Şu anda platformda kayıtlı hiçbir danışman bulunmuyor.</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                {consultants.filter(c => c.id !== user?.id).map(c => (
+                                    <div key={c.id} className="group relative">
+                                        <div className={`absolute inset-0 rounded-[2.5rem] opacity-0 group-hover:opacity-100 transition-all duration-500 blur-xl bg-gradient-to-r ${c.is_online ? "from-purple-500/10 to-indigo-500/10" : "from-white/2 to-white/2"}`} />
+                                        <button
+                                            onClick={() => {
+                                                if (!user) { alert("Lütfen giriş yapınız."); router.push('/login'); return; }
+                                                setSelectedConsultant(c);
+                                                if (!c.is_online) setOfflineWarningModal(true);
+                                                else setStep("client_step1_name");
+                                            }}
+                                            className="w-full relative bg-gradient-to-br from-[#120e26]/80 to-[#0c0817]/95 border border-white/5 hover:border-purple-500/35 p-6 rounded-[2.5rem] text-left flex flex-col gap-5 shadow-[0_15px_35px_rgba(0,0,0,0.4)] transition-all duration-300 hover:-translate-y-1.5 overflow-hidden"
+                                        >
+                                            <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/2 via-transparent to-transparent pointer-events-none" />
+                                            
+                                            <div className="flex justify-between items-start w-full relative z-10">
+                                                <div className="w-16 h-16 rounded-full border border-purple-500/20 bg-[#070510] flex items-center justify-center shrink-0 relative overflow-hidden shadow-inner group-hover:border-purple-500/40 transition-colors">
+                                                    {c.profiles?.avatar_url ? (
+                                                        <img src={c.profiles.avatar_url} alt={c.display_name} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <div className="w-full h-full bg-gradient-to-tr from-purple-600/30 to-indigo-600/30 flex items-center justify-center text-xl font-heading font-extrabold text-purple-300">
+                                                            {c.display_name?.charAt(0) || "D"}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex flex-col items-end gap-2">
+                                                    <span className={cn("px-2.5 py-1 text-[8.5px] font-bold uppercase tracking-widest rounded-full border flex items-center gap-1.5 transition-colors", 
+                                                        c.is_online ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-zinc-800/40 text-zinc-400 border-zinc-700/50")}>
+                                                        <span className={cn("w-1.5 h-1.5 rounded-full", c.is_online ? "bg-emerald-400 animate-pulse" : "bg-zinc-500")} />
+                                                        {c.is_online ? "Çevrimiçi" : "Çevrimdışı"}
+                                                    </span>
+                                                    {c.rating && (
+                                                        <span className="flex items-center gap-1 text-[9.5px] font-bold text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
+                                                            <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> {c.rating}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+         
+                                            <div className="relative z-10">
+                                                <h3 className="text-lg font-heading font-bold text-white mb-1 truncate group-hover:text-purple-300 transition-colors">
+                                                    {c.display_name}
+                                                </h3>
+                                                <p className="text-[10.5px] text-zinc-400 font-medium tracking-wide truncate">
+                                                    {c.specialties?.join(" • ") || "Tarot, Astroloji"}
+                                                </p>
+                                            </div>
+         
+                                            <div className="mt-1 w-full pt-4 border-t border-white/5 flex items-center justify-between relative z-10">
+                                                <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest group-hover:text-purple-300 transition-colors">
+                                                    {c.is_online ? "Hemen Bağlan" : "Randevu Al"}
+                                                </span>
+                                                <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 text-white flex items-center justify-center group-hover:bg-purple-600 group-hover:border-purple-500 transition-all duration-300 group-hover:translate-x-0.5">
+                                                    <ArrowRight className="w-4 h-4" />
+                                                </div>
+                                            </div>
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </section>
+                </div>
+
+                {/* Right Column: Günün Kozmik Çekimi (Sticky on Desktop, stacks beautifully on mobile) */}
+                <div className="lg:col-span-4 order-2 lg:order-2 lg:sticky lg:top-28 w-full flex justify-center lg:justify-end">
+                    {renderDailyFlip()}
+                </div>
+
+            </div>
         </motion.div>
     );
 

@@ -364,13 +364,15 @@ function TarotConsultantsContent() {
         const cardImage = hasCard ? getCardImage(dailyCardIndex!, 'tarot') : null;
 
         return (
-            <div className="shrink-0 w-full md:w-80 bg-white/[0.02] border border-white/5 hover:border-purple-500/20 p-5 rounded-3xl backdrop-blur-xl flex flex-col items-center gap-4 relative overflow-hidden transition-all shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-                <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/5 to-indigo-500/5 pointer-events-none" />
-                <span className="text-[10px] font-bold text-purple-400 tracking-[0.25em] uppercase">Günün Kozmik Çekimi</span>
+            <div className="shrink-0 w-full md:w-80 bg-gradient-to-br from-[#120f26]/90 via-[#0a0614]/95 to-[#1a1236]/90 border border-purple-500/25 p-6 rounded-[2.5rem] backdrop-blur-3xl flex flex-col items-center gap-5 relative overflow-hidden transition-all shadow-[0_20px_50px_rgba(0,0,0,0.5),0_0_30px_rgba(168,85,247,0.15)]">
+                <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/5 via-transparent to-indigo-500/5 pointer-events-none" />
+                <div className="absolute -top-12 -right-12 w-32 h-32 bg-purple-500/10 blur-3xl rounded-full pointer-events-none" />
+                
+                <span className="text-[10px] font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-amber-300 tracking-[0.3em] uppercase">Günün Kozmik Çekimi</span>
                 
                 <div 
                     onClick={handleDailyFlip}
-                    className="relative w-32 h-52 cursor-pointer [perspective:1000px]"
+                    className="relative w-36 h-60 cursor-pointer [perspective:1000px] hover:scale-105 active:scale-98 transition-all duration-300"
                 >
                     <motion.div
                         initial={false}
@@ -378,14 +380,32 @@ function TarotConsultantsContent() {
                         transition={{ duration: 0.8, ease: "easeInOut" }}
                         className="w-full h-full relative [transform-style:preserve-3d]"
                     >
-                        <div className="absolute inset-0 w-full h-full rounded-2xl bg-gradient-to-b from-[#1c1836] to-[#0c0817] border-2 border-purple-500/30 flex flex-col items-center justify-center shadow-lg [backface-visibility:hidden]">
-                            <div className="w-24 h-44 border border-purple-500/10 rounded-xl flex items-center justify-center relative">
-                                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-500/10 via-transparent to-transparent animate-pulse" />
-                                <div className="text-3xl filter drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]">🔮</div>
+                        {/* Front (Face Down / Back) */}
+                        <div className="absolute inset-0 w-full h-full rounded-2xl bg-gradient-to-b from-[#1b153b] via-[#0d091e] to-[#0c0817] border-2 border-purple-500/30 flex flex-col items-center justify-center shadow-2xl [backface-visibility:hidden] overflow-hidden">
+                            <div className="absolute inset-1.5 border border-purple-500/10 rounded-xl" />
+                            <div className="w-28 h-52 border border-purple-500/15 rounded-xl flex flex-col items-center justify-center relative bg-black/20">
+                                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-500/20 via-transparent to-transparent animate-pulse-slow" />
+                                
+                                {/* Mystical Celestial Compass SVG */}
+                                <svg className="w-16 h-16 text-purple-400/50 drop-shadow-[0_0_8px_rgba(168,85,247,0.4)]" viewBox="0 0 100 100" fill="none" stroke="currentColor">
+                                    <circle cx="50" cy="50" r="40" strokeWidth="0.8" strokeDasharray="3 3" />
+                                    <circle cx="50" cy="50" r="30" strokeWidth="0.5" />
+                                    <circle cx="50" cy="50" r="10" strokeWidth="0.5" strokeDasharray="1 1" />
+                                    <path d="M50 5 L50 95 M5 50 L95 50" strokeWidth="0.5" opacity="0.3" />
+                                    {/* Star details */}
+                                    <polygon points="50,38 52,43 57,43 53,46 55,51 50,48 45,51 47,46 43,43 48,43" fill="gold" opacity="0.9" />
+                                    <polygon points="50,15 51,19 55,19 52,21 53,25 50,23 47,25 48,21 45,19 49,19" fill="currentColor" opacity="0.4" />
+                                    <polygon points="50,75 51,79 55,79 52,81 53,85 50,83 47,85 48,81 45,79 49,79" fill="currentColor" opacity="0.4" />
+                                    <polygon points="18,45 19,49 23,49 20,51 21,55 18,53 15,55 16,51 13,49 17,49" fill="currentColor" opacity="0.4" transform="rotate(90 18 45)" />
+                                    <polygon points="80,45 81,49 85,49 82,51 83,55 80,53 77,55 78,51 75,49 79,49" fill="currentColor" opacity="0.4" transform="rotate(90 80 45)" />
+                                </svg>
+                                
+                                <span className="text-[8px] font-bold text-amber-400/40 uppercase tracking-[0.3em] mt-3">Kartı Çevir</span>
                             </div>
                         </div>
 
-                        <div className="absolute inset-0 w-full h-full rounded-2xl border-2 border-purple-500/40 shadow-xl overflow-hidden [transform:rotateY(180deg)] [backface-visibility:hidden] bg-[#0d0a18]">
+                        {/* Back (Face Up / Front) */}
+                        <div className="absolute inset-0 w-full h-full rounded-2xl border-2 border-purple-500/40 shadow-2xl overflow-hidden [transform:rotateY(180deg)] [backface-visibility:hidden] bg-[#0c0919] flex flex-col">
                             {hasCard && (
                                 <img 
                                     src={cardImage!} 
@@ -397,21 +417,22 @@ function TarotConsultantsContent() {
                     </motion.div>
                 </div>
 
-                <div className="text-center w-full min-h-[50px] flex flex-col justify-center">
+                <div className="text-center w-full min-h-[60px] flex flex-col justify-center bg-white/[0.01] border border-white/5 rounded-2xl p-3 relative">
                     {!isDailyFlipped ? (
-                        <p className="text-xs text-zinc-400 leading-normal px-4">
-                            Gününüzün enerjisini keşfetmek için kartı çevirin. ✨
+                        <p className="text-xs text-zinc-400 leading-relaxed font-medium">
+                            Bugünün kozmik mesajını ve kartını görmek için dokunun. ✨
                         </p>
                     ) : (
                         <motion.div 
-                            initial={{ opacity: 0, y: 5 }} 
-                            animate={{ opacity: 1, y: 0 }}
-                            className="space-y-1.5"
+                            initial={{ opacity: 0, scale: 0.95 }} 
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="space-y-1"
                         >
-                            <h4 className="text-sm font-bold text-white tracking-wide">
+                            <h4 className="text-sm font-heading font-extrabold text-white tracking-wide">
                                 {cardMeaning?.name}
                             </h4>
-                            <p className="text-[11px] text-purple-300 font-medium italic leading-relaxed px-2">
+                            <div className="w-12 h-px bg-purple-500/30 mx-auto my-1" />
+                            <p className="text-[10.5px] text-purple-300 font-bold italic leading-relaxed">
                                 {cardMeaning?.keywords}
                             </p>
                         </motion.div>
@@ -540,17 +561,17 @@ function TarotConsultantsContent() {
 
             {/* AI FEATURE CARD */}
             <section className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-fuchsia-600 to-indigo-600 rounded-[2.5rem] blur-xl opacity-20" />
-                <div className="relative p-1 rounded-[2.5rem] bg-gradient-to-r from-fuchsia-500/30 via-purple-500/30 to-indigo-500/30 overflow-hidden group">
-                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30 mix-blend-overlay pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 via-fuchsia-600/10 to-indigo-600/10 rounded-[2.5rem] blur-2xl opacity-40 pointer-events-none" />
+                <div className="relative p-0.5 rounded-[2.5rem] bg-gradient-to-r from-purple-500/20 via-fuchsia-500/20 to-indigo-500/20 overflow-hidden group shadow-2xl">
+                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 mix-blend-overlay pointer-events-none" />
 
-                    <div className="relative bg-[#0c0814]/90 backdrop-blur-3xl rounded-[2.4rem] p-8 md:p-10 flex flex-col md:flex-row items-center gap-8 justify-between border border-white/5">
+                    <div className="relative bg-[#0d091a]/95 backdrop-blur-3xl rounded-[2.4rem] p-8 md:p-10 flex flex-col md:flex-row items-center gap-8 justify-between border border-white/5">
                         <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left">
-                            <span className="px-3 py-1 bg-fuchsia-500/20 text-fuchsia-300 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] mb-4 border border-fuchsia-500/30 flex items-center gap-1.5 w-fit">
+                            <span className="px-3 py-1 bg-fuchsia-500/10 text-fuchsia-300 rounded-full text-[9px] font-bold uppercase tracking-[0.25em] mb-4 border border-fuchsia-500/20 flex items-center gap-1.5 w-fit">
                                 <span className="w-2 h-2 rounded-full bg-fuchsia-400 animate-pulse" />
                                 Yapay Zeka (7/24)
                             </span>
-                            <h2 className="text-3xl font-heading text-white font-bold mb-3 flex items-center gap-3 justify-center md:justify-start">
+                            <h2 className="text-3xl font-heading text-white font-extrabold mb-3 flex items-center gap-3 justify-center md:justify-start">
                                 Mistik AI Danışman <Sparkles className="w-6 h-6 text-fuchsia-400" />
                             </h2>
                             <p className="text-sm text-zinc-400 max-w-md mb-6 leading-relaxed">
@@ -559,17 +580,22 @@ function TarotConsultantsContent() {
 
                             <button
                                 onClick={() => user ? router.push("/ai-tarot") : router.push("/login")}
-                                className="px-8 py-4 w-full md:w-auto bg-gradient-to-r from-fuchsia-600 to-indigo-600 text-white font-bold text-xs uppercase tracking-widest rounded-2xl hover:shadow-[0_0_25px_rgba(217,70,239,0.4)] transition-all active:scale-95 flex items-center justify-center gap-2 group/btn"
+                                className="px-8 py-4 w-full md:w-auto bg-gradient-to-r from-fuchsia-600 to-indigo-600 text-white font-bold text-xs uppercase tracking-widest rounded-2xl hover:shadow-[0_0_30px_rgba(217,70,239,0.3)] hover:brightness-110 transition-all active:scale-95 flex items-center justify-center gap-2 group/btn"
                             >
                                 {user ? "Hemen Başla" : "Üye Ol & Başla"} <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
                             </button>
                         </div>
-                        <div className="shrink-0 relative w-32 h-32 md:w-48 md:h-48 group-hover:scale-105 transition-transform duration-700">
-                            <div className="absolute inset-0 rounded-full bg-fuchsia-500/20 shadow-[0_0_60px_rgba(217,70,239,0.3)] animate-pulse-slow" />
-                            <div className="absolute inset-2 border-2 border-fuchsia-500/30 rounded-full border-dashed animate-spin" style={{ animationDuration: '10s' }} />
-                            <div className="absolute inset-4 bg-[#140c24] border border-white/10 rounded-full flex items-center justify-center text-7xl drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
+                        
+                        <div className="shrink-0 relative w-36 h-36 md:w-48 md:h-48 group-hover:scale-105 transition-transform duration-700">
+                            <div className="absolute inset-0 rounded-full bg-fuchsia-500/10 shadow-[0_0_60px_rgba(217,70,239,0.25)] animate-pulse-slow" />
+                            <div className="absolute inset-2 border-2 border-fuchsia-500/20 rounded-full border-dashed animate-spin" style={{ animationDuration: '12s' }} />
+                            <motion.div 
+                                animate={{ y: [0, -6, 0] }}
+                                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                                className="absolute inset-4 bg-gradient-to-br from-[#1c0c3a] to-[#0c051a] border border-purple-500/30 rounded-full flex items-center justify-center text-6xl shadow-inner shadow-purple-500/30"
+                            >
                                 🤖
-                            </div>
+                            </motion.div>
                         </div>
                     </div>
                 </div>
@@ -606,7 +632,7 @@ function TarotConsultantsContent() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {consultants.filter(c => c.id !== user?.id).map(c => (
                             <div key={c.id} className="group relative">
-                                <div className={`absolute inset-0 rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity blur-md bg-gradient-to-r ${c.is_online ? "from-emerald-500/20 to-teal-500/20" : "from-white/5 to-white/5"}`} />
+                                <div className={`absolute inset-0 rounded-[2.5rem] opacity-0 group-hover:opacity-100 transition-all duration-500 blur-xl bg-gradient-to-r ${c.is_online ? "from-purple-500/10 to-indigo-500/10" : "from-white/2 to-white/2"}`} />
                                 <button
                                     onClick={() => {
                                         if (!user) { alert("Lütfen giriş yapınız."); router.push('/login'); return; }
@@ -614,41 +640,50 @@ function TarotConsultantsContent() {
                                         if (!c.is_online) setOfflineWarningModal(true);
                                         else setStep("client_step1_name");
                                     }}
-                                    className="w-full relative bg-[#13111c] border border-white/10 hover:border-white/20 p-6 rounded-[2rem] text-left flex flex-col gap-4 shadow-xl transition-all hover:-translate-y-1 overflow-hidden"
+                                    className="w-full relative bg-gradient-to-br from-[#120e26]/80 to-[#0c0817]/95 border border-white/5 hover:border-purple-500/35 p-6 rounded-[2.5rem] text-left flex flex-col gap-5 shadow-[0_15px_35px_rgba(0,0,0,0.4)] transition-all duration-300 hover:-translate-y-1.5 overflow-hidden"
                                 >
-                                    <div className="flex justify-between items-start w-full">
-                                        <div className="w-16 h-16 rounded-full border border-white/10 bg-[#0a0810] flex items-center justify-center shrink-0 relative overflow-hidden shadow-inner">
+                                    <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/2 via-transparent to-transparent pointer-events-none" />
+                                    
+                                    <div className="flex justify-between items-start w-full relative z-10">
+                                        <div className="w-16 h-16 rounded-full border border-purple-500/20 bg-[#070510] flex items-center justify-center shrink-0 relative overflow-hidden shadow-inner group-hover:border-purple-500/40 transition-colors">
                                             {c.profiles?.avatar_url ? (
                                                 <img src={c.profiles.avatar_url} alt={c.display_name} className="w-full h-full object-cover" />
                                             ) : (
-                                                <span className="text-xl font-bold font-heading text-white">{c.display_name?.charAt(0) || "D"}</span>
+                                                <div className="w-full h-full bg-gradient-to-tr from-purple-600/30 to-indigo-600/30 flex items-center justify-center text-xl font-heading font-extrabold text-purple-300">
+                                                    {c.display_name?.charAt(0) || "D"}
+                                                </div>
                                             )}
                                         </div>
                                         <div className="flex flex-col items-end gap-2">
-                                            <span className={cn("px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest rounded-full border flex items-center gap-1.5", c.is_online ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-zinc-800 text-zinc-400 border-zinc-700")}>
+                                            <span className={cn("px-2.5 py-1 text-[8.5px] font-bold uppercase tracking-widest rounded-full border flex items-center gap-1.5 transition-colors", 
+                                                c.is_online ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-zinc-800/40 text-zinc-400 border-zinc-700/50")}>
                                                 <span className={cn("w-1.5 h-1.5 rounded-full", c.is_online ? "bg-emerald-400 animate-pulse" : "bg-zinc-500")} />
-                                                {c.is_online ? "Açık" : "Kapalı"}
+                                                {c.is_online ? "Çevrimiçi" : "Çevrimdışı"}
                                             </span>
                                             {c.rating && (
-                                                <span className="flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
-                                                    <Star className="w-3 h-3 fill-amber-400" /> {c.rating}
+                                                <span className="flex items-center gap-1 text-[9.5px] font-bold text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
+                                                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> {c.rating}
                                                 </span>
                                             )}
                                         </div>
                                     </div>
-
-                                    <div>
+ 
+                                    <div className="relative z-10">
                                         <h3 className="text-lg font-heading font-bold text-white mb-1 truncate group-hover:text-purple-300 transition-colors">
                                             {c.display_name}
                                         </h3>
-                                        <p className="text-[11px] text-zinc-500 font-medium truncate">
+                                        <p className="text-[10.5px] text-zinc-400 font-medium tracking-wide truncate">
                                             {c.specialties?.join(" • ") || "Tarot, Astroloji"}
                                         </p>
                                     </div>
-
-                                    <div className="mt-2 w-full pt-4 border-t border-white/5 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <span className="text-xs text-zinc-400 font-semibold uppercase tracking-wider">Randevu Al</span>
-                                        <div className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center"><ArrowRight className="w-4 h-4" /></div>
+ 
+                                    <div className="mt-1 w-full pt-4 border-t border-white/5 flex items-center justify-between relative z-10">
+                                        <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest group-hover:text-purple-300 transition-colors">
+                                            {c.is_online ? "Hemen Bağlan" : "Randevu Al"}
+                                        </span>
+                                        <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 text-white flex items-center justify-center group-hover:bg-purple-600 group-hover:border-purple-500 transition-all duration-300 group-hover:translate-x-0.5">
+                                            <ArrowRight className="w-4 h-4" />
+                                        </div>
                                     </div>
                                 </button>
                             </div>

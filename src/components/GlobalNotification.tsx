@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import { Sparkles, X, Check, Calendar } from "lucide-react";
+import { Sparkles, X, Check, Calendar, PhoneCall } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LocalNotifications } from "@capacitor/local-notifications";
 
@@ -15,6 +15,7 @@ export default function GlobalNotification() {
     const [isOnline, setIsOnline] = useState(false);
 
     const router = useRouter();
+    const pathname = usePathname();
     const supabase = createClient();
 
     // Hook 1: Handle Auth State and Consultant Status Check
@@ -138,6 +139,10 @@ export default function GlobalNotification() {
                     },
                     (payload: any) => {
                         if (!isMounted) return;
+                        if (payload.new.client_info?.is_offline_request) {
+                            console.log("Offline request received, skipping real-time ringing.");
+                            return;
+                        }
                         console.log("New mobile notification received:", payload.new);
                         showBrowserNotification(payload.new);
                         setIncomingRequest(payload.new);
@@ -171,6 +176,9 @@ export default function GlobalNotification() {
 
             if (isMounted && missedSessions && missedSessions.length > 0) {
                 const session = missedSessions[0];
+                if (session.client_info?.is_offline_request) {
+                    return;
+                }
                 const createdAt = new Date(session.created_at).getTime();
                 const now = new Date().getTime();
                 // If it's newer than 5 minutes, show it
@@ -331,70 +339,94 @@ export default function GlobalNotification() {
         <>
         <AnimatePresence>
             {incomingRequest && (
-                <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                        className="w-full max-w-sm bg-[#161623] border border-white/10 shadow-2xl rounded-3xl overflow-hidden relative"
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        className="w-full max-w-md bg-[#0e0a1a]/95 border border-purple-500/30 shadow-[0_0_50px_rgba(168,85,247,0.25)] rounded-[2.5rem] overflow-hidden relative p-8 text-center space-y-6"
                     >
-                        {/* Top strip */}
-                        <div className="h-1.5 w-full bg-gradient-to-r from-emerald-400 to-teal-400 absolute top-0 left-0" />
+                        {/* Cosmic background glows */}
+                        <div className="absolute -top-16 -right-16 w-48 h-48 bg-purple-500/10 blur-[80px] rounded-full pointer-events-none" />
+                        <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-indigo-500/10 blur-[80px] rounded-full pointer-events-none" />
 
-                        <div className="p-6">
-                            <div className="flex items-center gap-4 mb-6">
-                                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shadow-inner">
-                                    <Calendar className="w-6 h-6 text-emerald-400" />
-                                </div>
-                                <div>
-                                    <h2 className="text-xl font-bold text-white tracking-tight">Yeni Randevu</h2>
-                                    <p className="text-xs text-zinc-400 uppercase tracking-widest font-semibold mt-0.5 whitespace-nowrap">Bekleyen Talep</p>
+                        {/* Top Pulsing Icon */}
+                        <div className="mx-auto w-16 h-16 rounded-full bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-300 relative">
+                            <PhoneCall className="w-6 h-6 animate-pulse" />
+                            <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500"></span>
+                            </span>
+                        </div>
+
+                        {/* Title */}
+                        <div className="space-y-1">
+                            <span className="px-3 py-1 bg-purple-500/15 text-purple-300 rounded-full text-[9px] font-bold uppercase tracking-[0.25em] border border-purple-500/25 inline-flex items-center gap-1.5">
+                                <Sparkles className="w-3 h-3 text-purple-400" /> Canlı Çağrı
+                            </span>
+                            <h2 className="text-2xl font-bold font-heading text-white tracking-wide mt-3">Yeni Görüşme Talebi</h2>
+                            <p className="text-xs text-zinc-400">Danışan sizinle canlı seans başlatmak istiyor.</p>
+                        </div>
+
+                        {/* Details Card */}
+                        <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-5 text-left space-y-4 relative overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/5 to-transparent pointer-events-none" />
+                            
+                            <div className="flex justify-between items-center pb-3 border-b border-white/5">
+                                <span className="text-xs text-zinc-400 font-medium">Danışan</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm font-bold text-white font-heading">
+                                        {incomingRequest.client_info?.name || "İsimsiz Danışan"}
+                                    </span>
+                                    {incomingRequest.client_id && onlineClients.has(incomingRequest.client_id) ? (
+                                        <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-bold uppercase tracking-wider">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                            Çevrimiçi
+                                        </span>
+                                    ) : (
+                                        <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-zinc-500/10 border border-zinc-500/20 text-zinc-400 text-[9px] font-bold uppercase tracking-wider">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-zinc-500" />
+                                            Çevrimdışı
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 
-                            <div className="bg-white/5 rounded-2xl p-4 border border-white/5 space-y-3 mb-6">
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-zinc-500 font-medium">Danışan</span>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-white font-bold">{incomingRequest.client_info?.name || "İsimsiz"}</span>
-                                        {incomingRequest.client_id && onlineClients.has(incomingRequest.client_id) ? (
-                                            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-widest">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                                Çevrimiçi
-                                            </span>
-                                        ) : (
-                                            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-zinc-500/10 border border-zinc-500/20 text-zinc-400 text-[10px] font-bold uppercase tracking-widest">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-zinc-500" />
-                                                Çevrimdışı
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-zinc-500 font-medium">Konu</span>
-                                    <span className="text-white font-bold">{incomingRequest.client_info?.focus || "Genel"}</span>
-                                </div>
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-zinc-500 font-medium">Paket</span>
-                                    <span className="text-white font-bold">{incomingRequest.client_info?.pkgId || "Standart"}</span>
-                                </div>
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-xs text-zinc-400 font-medium">Odak Konusu</span>
+                                <span className="text-xs font-bold text-purple-300 bg-purple-500/10 px-3 py-1 rounded-full border border-purple-500/20 uppercase tracking-wide">
+                                    {incomingRequest.client_info?.focus || "Genel Bakış"}
+                                </span>
                             </div>
 
-                            <div className="flex items-center gap-3">
-                                <button
-                                    onClick={() => handleRejectSession(incomingRequest)}
-                                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/10 text-zinc-300 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 transition-all font-bold text-sm"
-                                >
-                                    <X className="w-4 h-4" /> Reddet
-                                </button>
-
-                                <button
-                                    onClick={() => handleAcceptSession(incomingRequest)}
-                                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-500 text-white hover:bg-emerald-400 shadow-lg shadow-emerald-500/20 transition-all font-bold text-sm"
-                                >
-                                    <Check className="w-4 h-4 relative -top-[1px]" /> Kabul Et
-                                </button>
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-xs text-zinc-400 font-medium">Seçilen Paket</span>
+                                <span className="text-xs font-bold text-zinc-300 uppercase tracking-widest">
+                                    {incomingRequest.client_info?.pkgId === "standard" ? "🔮 Standart Açılım" :
+                                     incomingRequest.client_info?.pkgId === "synastry" ? "💖 İlişki / Sinastri" :
+                                     incomingRequest.client_info?.pkgId === "matrix" ? "👁️ Gelişmiş Matris" :
+                                     incomingRequest.client_info?.pkgId === "celtic" ? "⭐ Kelt Haçı" :
+                                     incomingRequest.client_info?.pkgId === "astrological" ? "🌙 Astrolojik 12 Ev" : 
+                                     incomingRequest.client_info?.pkgId || "Özel Açılım"}
+                                </span>
                             </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-3 pt-2">
+                            <button
+                                onClick={() => handleRejectSession(incomingRequest)}
+                                className="flex-1 flex items-center justify-center gap-2 py-4 px-6 rounded-2xl border border-white/10 hover:border-red-500/20 hover:bg-red-500/10 text-zinc-400 hover:text-red-400 transition-all font-bold text-xs uppercase tracking-widest"
+                            >
+                                <X className="w-4 h-4" /> Reddet
+                            </button>
+
+                            <button
+                                onClick={() => handleAcceptSession(incomingRequest)}
+                                className="flex-1 flex items-center justify-center gap-2 py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:brightness-110 active:scale-95 text-black transition-all font-bold text-xs uppercase tracking-widest shadow-lg shadow-emerald-500/20"
+                            >
+                                <Check className="w-4 h-4" /> Kabul Et
+                            </button>
                         </div>
                     </motion.div>
                 </div>
@@ -403,7 +435,7 @@ export default function GlobalNotification() {
 
         {/* Yüzen Danışman Çevrimiçi/Çevrimdışı Durum Göstergesi */}
         <AnimatePresence>
-            {isConsultant && user && (
+            {isConsultant && user && pathname !== "/room" && (
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
